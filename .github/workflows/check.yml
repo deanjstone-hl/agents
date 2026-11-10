@@ -1,0 +1,21 @@
+name: Check
+
+# The repo's local check, `bash scripts/check.sh`, on every PR and every push to main.
+# No `if:` reads the commit subject: a push to main always runs the check.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check profiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        run: bash scripts/check.sh
