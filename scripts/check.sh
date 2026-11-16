@@ -22,10 +22,17 @@ echo "check: step 2/2 markdown profiles" >&2
 git ls-files -z -- '*.md' | python3 -I -c '
 import os
 import re
+import subprocess
 import sys
 
 files = [f for f in sys.stdin.buffer.read().decode().split("\0") if f]
-tracked = set(os.path.normpath(f) for f in files)
+tracked = set(
+    os.path.normpath(f)
+    for f in subprocess.run(
+        ["git", "ls-files", "-z"], capture_output=True, check=True
+    ).stdout.decode().split("\0")
+    if f
+)
 errors = []
 FRONT_LINE = re.compile(r"^(?:[A-Za-z0-9_-]+:(?:\s.*)?|\s+.*|-\s.*|#.*|)$")
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
