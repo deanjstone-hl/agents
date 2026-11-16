@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>agents build and deploy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --paper: var(--background, #f5f7f8);
+      --ink: var(--foreground, #241523);
+      --soft: var(--muted-foreground, #6f6873);
+      --teal: var(--primary, #0a6f75);
+      --rule: var(--border, #cdd4dc);
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --paper: var(--background, #14181c);
+        --ink: var(--foreground, #e8eaed);
+        --soft: var(--muted-foreground, #9aa3ad);
+        --teal: var(--primary, #4fc3c8);
+        --rule: var(--border, #2c343c);
+      }
+    }
+    :root[data-theme="dark"] {
+      --paper: var(--background, #14181c);
+      --ink: var(--foreground, #e8eaed);
+      --soft: var(--muted-foreground, #9aa3ad);
+      --teal: var(--primary, #4fc3c8);
+      --rule: var(--border, #2c343c);
+    }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink); padding: 16px; }
+    .frame { max-width: 360px; }
+    .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); margin-bottom: 4px; }
+    h1 { font-size: 20px; font-weight: 600; line-height: 1.2; margin-bottom: 8px; }
+    .lede { font-size: 13px; line-height: 1.45; color: var(--soft); margin-bottom: 12px; }
+    .scroll { overflow-x: auto; }
+    svg { width: 100%; min-width: 320px; display: block; }
+    .src { font-size: 11px; line-height: 1.5; color: var(--soft); margin-top: 12px; }
+    .src a { color: var(--teal); }
+    .src code { font-family: var(--mono); font-size: 10px; }
+    .divider { stroke: var(--rule); stroke-width: 1; }
+    .lane { fill: var(--soft); font-family: var(--mono); font-size: 9px; letter-spacing: .12em; }
+    .flow { fill: none; stroke: var(--soft); stroke-width: 1.2; }
+    .dashed { stroke-dasharray: 5,4; }
+    .node { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+    .node.focal { fill: color-mix(in srgb, var(--teal) 14%, var(--paper)); stroke: var(--teal); stroke-width: 1.6; }
+    .node.ext { stroke-dasharray: 4,3; }
+    .step:target .node { stroke: var(--teal); stroke-width: 2.6; fill: color-mix(in srgb, var(--teal) 22%, var(--paper)); }
+    .name { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 600; text-anchor: middle; }
+    .sub { fill: var(--soft); font-family: var(--mono); font-size: 9px; text-anchor: middle; }
+    .note { fill: var(--soft); font-family: var(--sans); font-size: 11px; font-style: italic; }
+    .key { fill: var(--soft); font-family: var(--sans); font-size: 10px; }
+    .head-soft { fill: var(--soft); }
+    .head-teal { fill: var(--teal); }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Pipeline</p>
+    <h1>agents build and deploy</h1>
+    <p class="lede">A push to main runs the check on a hosted runner. There is no release or deploy branch here.</p>
+    <div class="scroll">
+    <svg viewBox="0 0 360 514" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="agentsci-title agentsci-desc">
+      <title id="agentsci-title">agents build and deploy</title>
+      <desc id="agentsci-desc">A push to main or a pull request starts the Check workflow on a GitHub-hosted runner, which runs scripts/check.sh. Nothing else follows in this repo: no deploy branch, release or host install. Reaching a session goes through argus-config's own promotion.</desc>
+      <defs>
+        <marker id="agentsci-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon class="head-soft" points="0 0, 8 3, 0 6"/></marker>
+        <marker id="agentsci-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon class="head-teal" points="0 0, 8 3, 0 6"/></marker>
+      </defs>
+<path class="flow" d="M 180,72 L 180,96" marker-end="url(#agentsci-arrow)"/>
+<path class="flow" d="M 180,144 L 180,168" marker-end="url(#agentsci-arrow)"/>
+<path class="flow" d="M 180,308 L 180,332" marker-end="url(#agentsci-arrow)"/>
+<g id="step-agentsci-push" class="step">
+<rect class="node" x="8" y="24" width="344" height="48" rx="6"/>
+<text class="name" x="180" y="45">Push to main</text>
+<text class="sub" x="180" y="60">or open a pull request</text>
+</g>
+<g id="step-agentsci-ci" class="step">
+<rect class="node focal" x="8" y="96" width="344" height="48" rx="6"/>
+<text class="name" x="180" y="117">Check profiles</text>
+<text class="sub" x="180" y="132">hosted runner, runs scripts/check.sh</text>
+</g>
+<g id="step-agentsci-main" class="step">
+<rect class="node" x="8" y="168" width="344" height="48" rx="6"/>
+<text class="name" x="180" y="189">main</text>
+<text class="sub" x="180" y="204">green is the readiness gate</text>
+</g>
+<text class="lane" x="8" y="248">NOT HERE</text>
+<g id="step-agentsci-release" class="step">
+<rect class="node ext" x="8" y="260" width="344" height="48" rx="6"/>
+<text class="name" x="180" y="281">Release or deploy</text>
+<text class="sub" x="180" y="296">no workflow, no deploy branch</text>
+</g>
+<g id="step-agentsci-promote" class="step">
+<rect class="node ext" x="8" y="332" width="344" height="48" rx="6"/>
+<text class="name" x="180" y="353">argus-config promotion</text>
+<text class="sub" x="180" y="368">the only path to a live session</text>
+</g>
+<text class="note" x="8" y="422">Unlike skills and wiki, this repo has no Release</text>
+<text class="note" x="8" y="436">workflow, so a promotion would release nothing today.</text>
+<text class="note" x="8" y="454">The trunk-readiness gate wants a committed check, CI on</text>
+<text class="note" x="8" y="468">push to main that runs it, and a green main.</text>
+<rect class="node " x="8" y="492" width="14" height="10" rx="2"/>
+<text class="key" x="28" y="501">Step</text>
+<rect class="node focal" x="62.8" y="492" width="14" height="10" rx="2"/>
+<text class="key" x="82.8" y="501">Gate</text>
+<rect class="node ext" x="117.6" y="492" width="14" height="10" rx="2"/>
+<text class="key" x="137.6" y="501">Absent or other repo</text>
+<line class="flow" x1="255.6" y1="497" x2="279.6" y2="497" marker-end="url(#agentsci-arrow)"/>
+<text class="key" x="285.6" y="501">Flow</text>
+    </svg>
+    </div>
+    <p class="src">Sources: <code>.github/workflows/check.yml</code>, <code>scripts/check.sh</code>, <code>README.md</code> (How it reaches a session). A later release workflow would be a new diagram.</p>
+  </div>
+</body>
+</html>
