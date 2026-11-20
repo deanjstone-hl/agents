@@ -10,16 +10,29 @@ The structure is a naming and permission scheme, not a chain of command: owner, 
 | [doctrine/units.md](doctrine/units.md) | Echelons, staff lanes, rank tiers, the rank-to-tools ceiling, call signs and where the analogy breaks |
 | [doctrine/culture.md](doctrine/culture.md) | What every profile shares, starting with the three-line voice |
 | [schema/](schema/README.md) | The profile schema (`profile.schema.json`): fields, enums, body layout and the rules the check enforces |
-| `profiles/` | One `<rank>-<role>.md` per profile, checked against the schema (none yet) |
+| [profiles/](#first-profiles) | One `<rank>-<role>.md` per profile, checked against the schema: the first four are listed under [First profiles](#first-profiles) |
 | [templates/brief.md](templates/brief.md) | The brief template `render.sh` fills for each profile |
-| `generated/` | Committed output of `render.sh`: `agents/<id>.md` and `briefs/<id>.md` per profile (none yet, as there are no profiles) |
+| `generated/` | Committed output of `render.sh`: `agents/<id>.md` and `briefs/<id>.md` per profile |
 | `scripts/` | The local check, the profile check and the renderer |
 
-The first profiles and `units/` are added by later steps. The plan and every decision are in [agents/1](https://github.com/deanjstone/agents/issues/1).
+The reviewer, `staff-xo` and `units/` are added by later steps. The plan and every decision are in [agents/1](https://github.com/deanjstone/agents/issues/1).
 
 ## How it reaches a session
 
 `agents` is not a deploy repo. argus-config consumes `generated/` through its own installer, deploy gate and promotion, which stay the only path to live. Nothing here changes a session until argus-config promotes it.
+
+## First profiles
+
+Authored from the charter text inventoried in [agents/6](https://github.com/deanjstone/agents/issues/6). The owner's decisions of 21 Nov 2026 shape the ranks: a scout stays strictly read-only, a specialist may list `Edit` and `Write` ([agents/22](https://github.com/deanjstone/agents/issues/22)).
+
+| Profile | Lane | Rank | Does |
+| ------- | ---- | ---- | ---- |
+| [`specialist-research-collector`](profiles/specialist-research-collector.md) | S-2 | specialist | Reads primary sources for one question and reports cited findings. Needs `WebFetch` and `Bash`, so it is not a scout |
+| [`scout-research-analyst`](profiles/scout-research-analyst.md) | S-2 | scout | Weighs the collector's findings and reports what they support. `Read`, `Grep`, `Glob` only |
+| [`specialist-hygiene`](profiles/specialist-hygiene.md) | S-1 | specialist | Sweeps the backlog twice a week and posts one batch of proposals. Read-only on code; needs `Bash` for `gh`. Model `sonnet` |
+| [`specialist-slot-worker`](profiles/specialist-slot-worker.md) | S-3 | specialist | Takes one issue end to end and lands it. The only one of the four that writes |
+
+Each carries Mission, Owns, Boundaries, Procedure, Done means and Report format, and renders to `generated/agents/<id>.md` and `generated/briefs/<id>.md`. The hygiene profile had no Done means in the charter; its own is new text. The slot worker's trunk and PR flows are two steps of one Procedure, chosen by the `repo_flow` input. The charter's repo-engineering rules (release pattern, capture-file names) are not worker text and stay in argus-config.
 
 ## Local check
 
@@ -29,7 +42,7 @@ Run the check before every push; CI runs the same command on every PR and every 
 bash scripts/check.sh
 ```
 
-`scripts/check.sh` needs only bash, git and python3. It runs seven steps: the shell and Python scripts parse; every tracked `.md` file is linted (non-empty, no trailing whitespace, newline at end of file, well-formed frontmatter with a closing `---` and `key: value` lines, every relative link resolving to a tracked file); every `profiles/*.md` is checked against the profile schema (below); the tests of that profile check run; the tests of the renderer run; `scripts/render.sh --check` fails if the committed `generated/` is not what the sources render to; and `scripts/check-heavy-lock.sh` checks the lock wiring below. It prints `check: pass <short sha>` on success and exits non-zero on any failure. The gate takes the host-wide heavy lock ([argus-config/1506](https://github.com/deanjstone/argus-config/issues/1506)): `scripts/check.sh` re-runs itself through `scripts/heavy-lock.sh`, so only one full check runs at a time on a host, whichever thread or CI job starts it, and it also waits while memory `some avg60` is 10 or more. A queued run prints `waiting for the host lock` and starts when the holder ends; it exits 75 without running once `HEAVY_LOCK_TIMEOUT` (3600 s) passes. `scripts/heavy-lock.sh` and `scripts/heavy-lock.lock` are vendored byte-for-byte from argus-config (its `scripts/sync-heavy-lock.sh` rewrites both; never edit them here), and `scripts/check-heavy-lock.sh` fails on a copy that no longer matches its lock.
+`scripts/check.sh` needs only bash, git and python3. It runs eight steps: the shell and Python scripts parse; every tracked `.md` file is linted (non-empty, no trailing whitespace, newline at end of file, well-formed frontmatter with a closing `---` and `key: value` lines, every relative link resolving to a tracked file); every `profiles/*.md` is checked against the profile schema (below); the tests of that profile check run; the tests of the renderer run; `scripts/render.sh --check` fails if the committed `generated/` is not what the sources render to; `scripts/check-heavy-lock.sh` checks the lock wiring below; and `scripts/test-first-profiles.sh` pins what the four first profiles say (rank, lane, tools, and the rules each must carry). It prints `check: pass <short sha>` on success and exits non-zero on any failure. The gate takes the host-wide heavy lock ([argus-config/1506](https://github.com/deanjstone/argus-config/issues/1506)): `scripts/check.sh` re-runs itself through `scripts/heavy-lock.sh`, so only one full check runs at a time on a host, whichever thread or CI job starts it, and it also waits while memory `some avg60` is 10 or more. A queued run prints `waiting for the host lock` and starts when the holder ends; it exits 75 without running once `HEAVY_LOCK_TIMEOUT` (3600 s) passes. `scripts/heavy-lock.sh` and `scripts/heavy-lock.lock` are vendored byte-for-byte from argus-config (its `scripts/sync-heavy-lock.sh` rewrites both; never edit them here), and `scripts/check-heavy-lock.sh` fails on a copy that no longer matches its lock.
 
 ### Profile check
 
