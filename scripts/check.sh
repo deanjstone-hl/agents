@@ -8,7 +8,9 @@
 # schema/profile.schema.json (scripts/check-profiles.sh) and runs that checker's tests, then
 # runs the renderer's tests and checks that the committed generated/ output is what
 # scripts/render.sh renders from the sources. Last, it runs the tests that pin the first four
-# profiles (scripts/test-first-profiles.sh).
+# profiles (scripts/test-first-profiles.sh), checks units/*.yaml against schema/unit.schema.json
+# and the profiles they name (scripts/check-units.sh), and runs the tests of the fire team: that
+# check, the size trigger and the reviewer profile (scripts/test-fire-team.sh).
 # Needs only bash, git and python3.
 # Prints `check: pass <short sha>` on success; any failure exits non-zero.
 set -euo pipefail
@@ -23,21 +25,21 @@ if [ "${HEAVY_LOCK_HELD:-}" != 1 ]; then
   exec bash "$PWD/scripts/heavy-lock.sh" bash "$PWD/scripts/check.sh" "$@"
 fi
 
-echo "check: step 1/8 script syntax" >&2
+echo "check: step 1/10 script syntax" >&2
 for script in scripts/*.sh; do
   bash -n "$script" || {
-    echo "check: FAIL at step 1/8 (bash -n $script)" >&2
+    echo "check: FAIL at step 1/10 (bash -n $script)" >&2
     exit 1
   }
 done
 for script in scripts/*.py; do
   python3 -I -c 'import ast, sys; ast.parse(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1])' "$script" || {
-    echo "check: FAIL at step 1/8 (python syntax $script)" >&2
+    echo "check: FAIL at step 1/10 (python syntax $script)" >&2
     exit 1
   }
 done
 
-echo "check: step 2/8 markdown" >&2
+echo "check: step 2/10 markdown" >&2
 git ls-files -z -- '*.md' | python3 -I -c '
 import os
 import re
@@ -102,43 +104,55 @@ if errors:
     sys.exit(1)
 print(f"markdown: {len(files)} file(s) ok", file=sys.stderr)
 ' || {
-  echo "check: FAIL at step 2/8 (markdown)" >&2
+  echo "check: FAIL at step 2/10 (markdown)" >&2
   exit 1
 }
 
-echo "check: step 3/8 profiles against the schema" >&2
+echo "check: step 3/10 profiles against the schema" >&2
 bash scripts/check-profiles.sh || {
-  echo "check: FAIL at step 3/8 (profiles)" >&2
+  echo "check: FAIL at step 3/10 (profiles)" >&2
   exit 1
 }
 
-echo "check: step 4/8 profile check tests" >&2
+echo "check: step 4/10 profile check tests" >&2
 bash scripts/test-check-profiles.sh || {
-  echo "check: FAIL at step 4/8 (profile check tests)" >&2
+  echo "check: FAIL at step 4/10 (profile check tests)" >&2
   exit 1
 }
 
-echo "check: step 5/8 render tests" >&2
+echo "check: step 5/10 render tests" >&2
 bash scripts/test-render.sh || {
-  echo "check: FAIL at step 5/8 (render tests)" >&2
+  echo "check: FAIL at step 5/10 (render tests)" >&2
   exit 1
 }
 
-echo "check: step 6/8 generated output is current" >&2
+echo "check: step 6/10 generated output is current" >&2
 bash scripts/render.sh --check || {
-  echo "check: FAIL at step 6/8 (generated output; run bash scripts/render.sh and commit generated/)" >&2
+  echo "check: FAIL at step 6/10 (generated output; run bash scripts/render.sh and commit generated/)" >&2
   exit 1
 }
 
-echo "check: step 7/8 heavy lock wiring" >&2
+echo "check: step 7/10 heavy lock wiring" >&2
 bash scripts/check-heavy-lock.sh || {
-  echo "check: FAIL at step 7/8 (heavy lock wiring)" >&2
+  echo "check: FAIL at step 7/10 (heavy lock wiring)" >&2
   exit 1
 }
 
-echo "check: step 8/8 first profiles" >&2
+echo "check: step 8/10 first profiles" >&2
 bash scripts/test-first-profiles.sh || {
-  echo "check: FAIL at step 8/8 (first profiles)" >&2
+  echo "check: FAIL at step 8/10 (first profiles)" >&2
+  exit 1
+}
+
+echo "check: step 9/10 unit files" >&2
+bash scripts/check-units.sh || {
+  echo "check: FAIL at step 9/10 (unit files)" >&2
+  exit 1
+}
+
+echo "check: step 10/10 fire team tests" >&2
+bash scripts/test-fire-team.sh || {
+  echo "check: FAIL at step 10/10 (fire team tests)" >&2
   exit 1
 }
 

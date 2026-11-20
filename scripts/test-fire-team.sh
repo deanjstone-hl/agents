@@ -397,12 +397,14 @@ issue="$scratch/issue.txt"
 diff_file="$scratch/changes.diff"
 printf 'ISSUE-TEXT-MARKER: fix the thing exactly as written\nsecond line\n' >"$issue"
 printf 'diff --git a/x b/x\n+DIFF-MARKER\n' >"$diff_file"
+printf '/home/user/.t3/worktrees/example/review-head\n' >"$scratch/checkout.txt"
 brief_out="$scratch/brief.out"
-if ! bash scripts/render.sh --brief specialist-reviewer --issue-file "$issue" --input diff="$diff_file" >"$brief_out" 2>"$scratch/brief.err"; then
+if ! bash scripts/render.sh --brief specialist-reviewer --issue-file "$issue" --input diff="$diff_file" --input checkout="$scratch/checkout.txt" >"$brief_out" 2>"$scratch/brief.err"; then
   fail "render.sh --brief specialist-reviewer failed: $(cat "$scratch/brief.err")"
 else
   grep -qF "ISSUE-TEXT-MARKER: fix the thing exactly as written" "$brief_out" || fail "the rendered reviewer brief lacks the issue text"
   grep -qF "DIFF-MARKER" "$brief_out" || fail "the rendered reviewer brief lacks the diff"
+  grep -qF "example/review-head" "$brief_out" || fail "the rendered reviewer brief lacks the checkout path"
 fi
 
 cases=$((cases + 1))

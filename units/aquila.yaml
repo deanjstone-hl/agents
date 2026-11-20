@@ -1,0 +1,12 @@
+# Aquila's unit: which profiles pair up and when the pair reviews.
+# A fire team here is a buddy-pair analogy (a builder and a reviewer), not the doctrinal
+# four-member fire team: see "Where the analogy breaks" in doctrine/units.md.
+unit: aquila
+version: "1.0"
+fire_teams:
+  slot:
+    builder: specialist-slot-worker
+    reviewer: specialist-reviewer
+    trigger: changed-lines
+    threshold: 300
+    gate: [ci, verify-claim]
