@@ -10,15 +10,23 @@ set -euo pipefail
 
 builtin cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-echo "check: step 1/2 shell syntax" >&2
+# One full check at a time per host (argus-config#1506): two overlapping gates made
+# systemd-oomd kill agent scopes. The re-exec waits for the host lock (HEAVY_LOCK_TIMEOUT,
+# default 3600 s, then exit 75) and runs this script with HEAVY_LOCK_HELD=1 so it does not
+# wait again. scripts/heavy-lock.sh is vendored from argus-config.
+if [ "${HEAVY_LOCK_HELD:-}" != 1 ]; then
+  exec bash "$PWD/scripts/heavy-lock.sh" bash "$PWD/scripts/check.sh" "$@"
+fi
+
+echo "check: step 1/3 shell syntax" >&2
 for script in scripts/*.sh; do
   bash -n "$script" || {
-    echo "check: FAIL at step 1/2 (bash -n $script)" >&2
+    echo "check: FAIL at step 1/3 (bash -n $script)" >&2
     exit 1
   }
 done
 
-echo "check: step 2/2 markdown profiles" >&2
+echo "check: step 2/3 markdown profiles" >&2
 git ls-files -z -- '*.md' | python3 -I -c '
 import os
 import re
@@ -83,7 +91,13 @@ if errors:
     sys.exit(1)
 print(f"markdown: {len(files)} file(s) ok", file=sys.stderr)
 ' || {
-  echo "check: FAIL at step 2/2 (markdown profiles)" >&2
+  echo "check: FAIL at step 2/3 (markdown profiles)" >&2
+  exit 1
+}
+
+echo "check: step 3/3 heavy lock wiring" >&2
+bash scripts/check-heavy-lock.sh || {
+  echo "check: FAIL at step 3/3 (heavy lock wiring)" >&2
   exit 1
 }
 
