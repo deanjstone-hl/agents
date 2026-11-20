@@ -477,7 +477,7 @@ fi
 # The table is read from doctrine/units.md (--units overrides the file in these cases). Each
 # case that needs a different table writes its own file; the values of the real table are the
 # owner's to change, so the cases against it use only the first rows: scout reads, specialist
-# adds Bash and WebFetch, lead adds Edit and Write, staff takes everything.
+# adds Bash, WebFetch, Edit and Write, lead adds no tool, staff takes everything.
 
 # with_allow <rank> <flow list>: a valid profile of that rank listing exactly those tools.
 with_allow() {
@@ -525,7 +525,11 @@ expect_fail "a scout listing Edit" "AGP013"
 grep -qF "Edit" <<<"$out" || fail "scout Edit: the message does not name the tool: $out"
 grep -qF "scout" <<<"$out" || fail "scout Edit: the message does not name the rank: $out"
 grep -qF "profiles/scout-worker.md:" <<<"$out" || fail "scout Edit: the message does not name the file: $out"
-grep -qF "lead" <<<"$out" || fail "scout Edit: the message does not name the lowest rank that allows it (lead): $out"
+grep -qF "first allowed at specialist" <<<"$out" || fail "scout Edit: the message does not name the lowest rank that allows it (specialist): $out"
+
+new_fixture
+with_allow scout "[Read, Write]"
+expect_fail "a scout listing Write" "AGP013"
 
 new_fixture
 with_allow scout "[Read, Bash]"
@@ -544,11 +548,19 @@ expect_pass "a specialist inherits the scout tools and adds Bash and WebFetch"
 
 new_fixture
 with_allow specialist "[Read, Edit]"
-expect_fail "a specialist listing Edit" "AGP013"
+expect_pass "a specialist listing Edit"
+
+new_fixture
+with_allow specialist "[Read, Grep, Glob, Bash, WebFetch, Edit, Write]"
+expect_pass "a specialist may list Edit and Write: it writes in its own worktree"
+
+new_fixture
+with_allow specialist "[Read, Agent]"
+expect_fail "a specialist listing a tool the table gives only staff" "AGP013"
 
 new_fixture
 with_allow lead "[Read, Grep, Glob, Bash, WebFetch, Edit, Write]"
-expect_pass "a lead inherits both lower ranks and adds Edit and Write"
+expect_pass "a lead may list every specialist tool: it adds none of its own"
 
 new_fixture
 with_allow lead "[Read, Agent]"
