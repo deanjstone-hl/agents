@@ -411,7 +411,9 @@ def table_cells(line):
 
 def parse_tool_cell(cell):
     """The backticked tool names in a table cell, or (None, why) when the cell is not only
-    backticked names joined by commas or 'and'."""
+    backticked names joined by commas or 'and'. A cell that is only `none` adds no tool."""
+    if cell.strip().lower() == "none":
+        return [], None
     names = re.findall(r"`([^`]*)`", cell)
     leftover = re.sub(r"\band\b|[,\s]", "", re.sub(r"`[^`]*`", "", cell))
     if not names:
