@@ -7,7 +7,7 @@ The structure is a naming and permission scheme, not a chain of command: owner, 
 
 | Path | Holds |
 | ---- | ----- |
-| [doctrine/units.md](doctrine/units.md) | Echelons, staff lanes, rank tiers, call signs and where the analogy breaks |
+| [doctrine/units.md](doctrine/units.md) | Echelons, staff lanes, rank tiers, the rank-to-tools ceiling, call signs and where the analogy breaks |
 | [doctrine/culture.md](doctrine/culture.md) | What every profile shares, starting with the three-line voice |
 | [schema/](schema/README.md) | The profile schema (`profile.schema.json`): fields, enums, body layout and the rules the check enforces |
 | `profiles/` | One `<rank>-<role>.md` per profile, checked against the schema (none yet) |
@@ -33,11 +33,11 @@ bash scripts/check.sh
 
 ### Profile check
 
-`bash scripts/check-profiles.sh [--root <dir>] [--base <ref>]` checks `profiles/*.md` against [`schema/profile.schema.json`](schema/profile.schema.json) and prints `profiles/<file>:<line>: AGPnnn: <message>` for each failure. It fails on missing, unknown or duplicate fields, an unknown rank (the ranks are `scout`, `specialist`, `lead`, `staff`), an id that is not the file name or rank, a wrong section layout, a Voice over 3 lines, a Learned section over 10 lines of 200 characters, and an authority field (`rank`, `lane`, `tools`, `model`, `runtime`) changed without a higher `version` than the base. `runtime` is optional and defaults to `claude`. The base is `--base`, then `PROFILE_BASE`, then `origin/main`; a missing `origin/main` skips the version rule with a note, and CI passes the commit before the push (or the pull request's base branch). `scripts/test-check-profiles.sh` holds the tests, run by `check.sh`; each case builds a throwaway fixture repo, so no broken profile is tracked. Fields, rules and the diagnostic codes are in [schema/](schema/README.md).
+`bash scripts/check-profiles.sh [--root <dir>] [--units <file>] [--base <ref>]` checks `profiles/*.md` against [`schema/profile.schema.json`](schema/profile.schema.json) and prints `profiles/<file>:<line>: AGPnnn: <message>` for each failure. It fails on missing, unknown or duplicate fields, an unknown rank (the ranks are `scout`, `specialist`, `lead`, `staff`), an id that is not the file name or rank, a `tools.allow` entry above the rank's ceiling (the table in [doctrine/units.md](doctrine/units.md#rank-ceiling), `--units` names another file), a wrong section layout, a Voice over 3 lines, a Learned section over 10 lines of 200 characters, and an authority field (`rank`, `lane`, `tools`, `model`, `runtime`) changed without a higher `version` than the base. `runtime` is optional and defaults to `claude`. The base is `--base`, then `PROFILE_BASE`, then `origin/main`; a missing `origin/main` skips the version rule with a note, and CI passes the commit before the push (or the pull request's base branch). `scripts/test-check-profiles.sh` holds the tests, run by `check.sh`; each case builds a throwaway fixture repo, so no broken profile is tracked. Fields, rules and the diagnostic codes are in [schema/](schema/README.md).
 
 ### Render
 
-`bash scripts/render.sh` turns each profile into two committed files under `generated/`, joined with [`doctrine/culture.md`](doctrine/culture.md) and [`templates/brief.md`](templates/brief.md). Run it after any change to a profile, the culture or the template, and commit `generated/` in the same landing; `check.sh` fails on a stale, missing or orphaned file (`bash scripts/render.sh --check` names it). A profile that fails the profile check is never rendered, and nothing is written unless every profile renders.
+`bash scripts/render.sh` turns each profile into two committed files under `generated/`, joined with [`doctrine/culture.md`](doctrine/culture.md) and [`templates/brief.md`](templates/brief.md). Run it after any change to a profile, the culture or the template, and commit `generated/` in the same landing; `check.sh` fails on a stale, missing or orphaned file (`bash scripts/render.sh --check` names it). A profile that fails the profile check, the rank ceiling included, is never rendered, and nothing is written unless every profile renders.
 
 | Output | What it is |
 | ------ | ---------- |

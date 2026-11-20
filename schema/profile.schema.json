@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/deanjstone/agents/blob/main/schema/profile.schema.json",
   "title": "Agent profile front matter",
-  "description": "The YAML front matter of profiles/<id>.md. scripts/check-profiles.sh enforces it with a small stdlib validator (type, enum, pattern, required, items, minItems, uniqueItems, minLength, additionalProperties, patternProperties, default). A field declares; it does not enforce. The body layout and caps are under x-body.",
+  "description": "The YAML front matter of profiles/<id>.md. scripts/check-profiles.sh enforces it with a small stdlib validator (type, enum, pattern, required, items, minItems, uniqueItems, minLength, additionalProperties, patternProperties, default). A field declares; it does not enforce, except that tools.allow may not list a tool above the rank's row of the Rank ceiling table in doctrine/units.md. The body layout and caps are under x-body.",
   "type": "object",
   "required": [
     "id",
@@ -71,7 +71,7 @@
       "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9:_-]*$" }
     },
     "tools": {
-      "description": "Allowed and denied tools. Both lists are required so a change to either is visible.",
+      "description": "Allowed and denied tools. Both lists are required so a change to either is visible. allow is checked against the rank ceiling; deny is not.",
       "type": "object",
       "required": ["allow", "deny"],
       "additionalProperties": false,

@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Checks profiles/*.md against schema/profile.schema.json (agents#8): required and unknown
 # fields, ranks, ids, the body layout, the Voice and Learned caps, and authority fields
-# changed without a version bump against a base ref. Run by scripts/check.sh.
+# changed without a version bump against a base ref, and tools.allow entries above the rank's
+# ceiling (the table in doctrine/units.md, agents#21). Run by scripts/check.sh.
 #
-#   bash scripts/check-profiles.sh [--root <dir>] [--base <ref>]
+#   bash scripts/check-profiles.sh [--root <dir>] [--units <file>] [--base <ref>]
+#
+# --units names the file holding the '## Rank ceiling' table (default doctrine/units.md). A
+# table that cannot be read fails the check (AGP014), with or without profiles.
 #
 # --base (or PROFILE_BASE) names the ref the version-bump rule compares with; a ref that
 # does not exist is an error. Without it the base is origin/main, and a missing origin/main
