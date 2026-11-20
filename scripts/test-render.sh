@@ -265,7 +265,7 @@ expect_pass "model auto"
 if front "$(agent_file specialist-reviewer)" | grep -q '^model:'; then fail "model auto must not become a literal override"; fi
 
 new_fixture
-valid_text | sed 's/^mission: .*/mission: Say "hi": then stop./' | put specialist-reviewer
+valid_text | sed 's/^mission: .*/mission: "Say \\"hi\\": then stop."/' | put specialist-reviewer
 expect_pass "a mission with a quote and a colon"
 has_line "$(agent_file specialist-reviewer)" 'description: "Say \"hi\": then stop."' "a mission is quoted for YAML"
 
