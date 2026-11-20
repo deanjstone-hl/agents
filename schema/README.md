@@ -63,6 +63,10 @@ escalates_to: owner
 Result, evidence, open questions.
 ```
 
+## Unit files
+
+`units/<unit>.yaml` pairs profiles into fire teams, checked against [`unit.schema.json`](unit.schema.json) by `bash scripts/check-units.sh`. Keys: `unit` (the file name), `version`, and `fire_teams`, a mapping of team name to `builder`, `reviewer`, `trigger` (only `changed-lines`), `threshold` (an integer of at least 1) and `gate` (a non-empty list of the mechanical checks that stay the gate). A key starting `x-` is an extension. Beyond the schema, the check fails when a named profile does not exist, the reviewer is the builder, the reviewer can write or takes no `diff` input, or its report goes to the builder. The rules are in the [README](../README.md#fire-team).
+
 ## What the check enforces
 
 `scripts/check-profiles.sh [--root <dir>] [--units <file>] [--base <ref>]` prints `profiles/<file>:<line>: AGPnnn: <message>` and exits 1 on any failure. The codes are listed at the top of [`scripts/check_profiles.py`](../scripts/check_profiles.py).

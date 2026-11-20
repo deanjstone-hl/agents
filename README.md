@@ -13,9 +13,10 @@ The structure is a naming and permission scheme, not a chain of command: owner, 
 | [profiles/](#first-profiles) | One `<rank>-<role>.md` per profile, checked against the schema: the first four are listed under [First profiles](#first-profiles) |
 | [templates/brief.md](templates/brief.md) | The brief template `render.sh` fills for each profile |
 | `generated/` | Committed output of `render.sh`: `agents/<id>.md` and `briefs/<id>.md` per profile |
-| `scripts/` | The local check, the profile check and the renderer |
+| [units/](#fire-team) | `aquila.yaml`: which profiles pair up as a fire team and when the pair reviews, checked against [`schema/unit.schema.json`](schema/unit.schema.json) |
+| `scripts/` | The local check, the profile and unit checks, the renderer and the review trigger |
 
-The reviewer, `staff-xo` and `units/` are added by later steps. The plan and every decision are in [agents/1](https://github.com/deanjstone/agents/issues/1).
+`staff-xo` is added by a later step. The plan and every decision are in [agents/1](https://github.com/deanjstone/agents/issues/1).
 
 ## How it reaches a session
 
@@ -34,6 +35,18 @@ Authored from the charter text inventoried in [agents/6](https://github.com/dean
 
 Each carries Mission, Owns, Boundaries, Procedure, Done means and Report format, and renders to `generated/agents/<id>.md` and `generated/briefs/<id>.md`. The hygiene profile had no Done means in the charter; its own is new text. The slot worker's trunk and PR flows are two steps of one Procedure, chosen by the `repo_flow` input. The charter's repo-engineering rules (release pattern, capture-file names) are not worker text and stay in argus-config.
 
+## Fire team
+
+[`units/aquila.yaml`](units/aquila.yaml) pairs the [slot worker](profiles/specialist-slot-worker.md) (builder) with the new [`specialist-reviewer`](profiles/specialist-reviewer.md) as team `slot`. The pair is a buddy-check analogy, not the doctrinal four-member fire team ([where the analogy breaks](doctrine/units.md#where-the-analogy-breaks)).
+
+The reviewer ([agents/11](https://github.com/deanjstone/agents/issues/11), owner decision D6) is a specialist with a read-only lane (`Read`, `Grep`, `Glob`, `Bash`; no `Edit` or `Write`). Its brief carries the issue text verbatim, the diff and the path of a checkout of the change, and nothing from the author's narrative. It must run the checks, and reports `PASS`, `ISSUES` or `BLOCKED` with the evidence for it.
+
+- **Size-triggered.** It runs only above `threshold` changed lines, 300 to start ([argus-config/824](https://github.com/deanjstone/argus-config/issues/824): single-pass review tied the fan-out on changes of 300 lines or fewer and lost on all three of 585 lines or more, from 10 changes). The count is the added plus deleted lines of `git diff --numstat <base> <head>`, binary files as none. `bash scripts/review-needed.sh --base <ref> --head <ref> [--team slot]` prints `required (N changed lines, threshold T, team slot): launch <reviewer>` or `skip (...)`, and exits 2 when it cannot decide.
+- **Never the sole gate.** CI and `verify-claim.sh` stay the gate. Every team lists its `gate` in the unit file, never empty, and a `PASS` approves no merge.
+- **Independent.** `bash scripts/check-units.sh` fails when the reviewer is the builder, can write (a write lane, or `Edit` or `Write` in `tools.allow`), takes no `diff` input, or reports to the builder, and when either profile does not exist. Codes `AGU001` to `AGU011` are listed at the top of [`scripts/check_units.py`](scripts/check_units.py).
+
+Render a reviewer brief the way `## Inputs` says: `bash scripts/render.sh --brief specialist-reviewer --issue-file issue.txt --input diff=changes.diff --input checkout=checkout-path.txt`. The tests are `scripts/test-fire-team.sh`, run by `check.sh`. Nothing launches the reviewer yet: wiring it into the orchestrator's briefs is [agents/13](https://github.com/deanjstone/agents/issues/13).
+
 ## Local check
 
 Run the check before every push; CI runs the same command on every PR and every push to `main`:
@@ -42,7 +55,7 @@ Run the check before every push; CI runs the same command on every PR and every 
 bash scripts/check.sh
 ```
 
-`scripts/check.sh` needs only bash, git and python3. It runs eight steps: the shell and Python scripts parse; every tracked `.md` file is linted (non-empty, no trailing whitespace, newline at end of file, well-formed frontmatter with a closing `---` and `key: value` lines, every relative link resolving to a tracked file); every `profiles/*.md` is checked against the profile schema (below); the tests of that profile check run; the tests of the renderer run; `scripts/render.sh --check` fails if the committed `generated/` is not what the sources render to; `scripts/check-heavy-lock.sh` checks the lock wiring below; and `scripts/test-first-profiles.sh` pins what the four first profiles say (rank, lane, tools, and the rules each must carry). It prints `check: pass <short sha>` on success and exits non-zero on any failure. The gate takes the host-wide heavy lock ([argus-config/1506](https://github.com/deanjstone/argus-config/issues/1506)): `scripts/check.sh` re-runs itself through `scripts/heavy-lock.sh`, so only one full check runs at a time on a host, whichever thread or CI job starts it, and it also waits while memory `some avg60` is 10 or more. A queued run prints `waiting for the host lock` and starts when the holder ends; it exits 75 without running once `HEAVY_LOCK_TIMEOUT` (3600 s) passes. `scripts/heavy-lock.sh` and `scripts/heavy-lock.lock` are vendored byte-for-byte from argus-config (its `scripts/sync-heavy-lock.sh` rewrites both; never edit them here), and `scripts/check-heavy-lock.sh` fails on a copy that no longer matches its lock.
+`scripts/check.sh` needs only bash, git and python3. It runs ten steps: the shell and Python scripts parse; every tracked `.md` file is linted (non-empty, no trailing whitespace, newline at end of file, well-formed frontmatter with a closing `---` and `key: value` lines, every relative link resolving to a tracked file); every `profiles/*.md` is checked against the profile schema (below); the tests of that profile check run; the tests of the renderer run; `scripts/render.sh --check` fails if the committed `generated/` is not what the sources render to; `scripts/check-heavy-lock.sh` checks the lock wiring below; `scripts/test-first-profiles.sh` pins what the four first profiles say (rank, lane, tools, and the rules each must carry); `scripts/check-units.sh` checks the unit files; and `scripts/test-fire-team.sh` runs the tests of the unit check, the size trigger and the reviewer profile. It prints `check: pass <short sha>` on success and exits non-zero on any failure. The gate takes the host-wide heavy lock ([argus-config/1506](https://github.com/deanjstone/argus-config/issues/1506)): `scripts/check.sh` re-runs itself through `scripts/heavy-lock.sh`, so only one full check runs at a time on a host, whichever thread or CI job starts it, and it also waits while memory `some avg60` is 10 or more. A queued run prints `waiting for the host lock` and starts when the holder ends; it exits 75 without running once `HEAVY_LOCK_TIMEOUT` (3600 s) passes. `scripts/heavy-lock.sh` and `scripts/heavy-lock.lock` are vendored byte-for-byte from argus-config (its `scripts/sync-heavy-lock.sh` rewrites both; never edit them here), and `scripts/check-heavy-lock.sh` fails on a copy that no longer matches its lock.
 
 ### Profile check
 

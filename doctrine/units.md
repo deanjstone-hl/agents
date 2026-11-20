@@ -28,7 +28,7 @@ Owner (commander)
 | S-3 | Training, operations, plans and force development, integrating the operation as a whole | Running the work: slot workers. Plans (doctrinally G-5, which sits under the G-3 at our scale) is folded in here, so wayfinder maps and grilling belong to this lane | Slot workers, wayfinder |
 | S-4 | Sustainment: supply, maintenance, transportation, services | Budget, host caps, memory and disk gates | The charter's resource gates |
 | S-6 | Network operations, information services | Communication plumbing: loop-state, notice board, T3 peers, ops hub. Infrastructure, not an agent role | None as an agent |
-| Fire team | The small self-contained fighting element | A builder plus a reviewer. An analogy, labelled as one: see [where the analogy breaks](#where-the-analogy-breaks) | Slot worker (builder), reviewer role to come |
+| Fire team | The small self-contained fighting element | A builder plus a reviewer. An analogy, labelled as one: see [where the analogy breaks](#where-the-analogy-breaks) | Slot worker (builder) and `specialist-reviewer`, paired in `units/aquila.yaml`. The reviewer runs only on a change above 300 changed lines and is never the sole gate |
 
 The memory system, vault and notice board fit the doctrine's knowledge management officer (working through the XO) better than S-6. That is a note on the mapping, not a lane.
 
