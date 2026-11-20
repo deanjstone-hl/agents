@@ -312,7 +312,6 @@ add_learned "$target" 10
 commit_all "learned at the cap"
 git -C "$fx" switch -q -c learned/over-cap
 printf -- '- 2026-11-21: Eleventh ([source](https://example.invalid/11))\n' >>"$fx/profiles/$target.md"
-bash "$renderer" --root "$fx" >/dev/null 2>&1
 commit_all "eleventh line"
 run_check --proposal --base main
 expect_pass "over cap: the shape of the proposal is one line"
