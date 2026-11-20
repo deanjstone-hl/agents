@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/deanjstone/agents/blob/main/schema/profile.schema.json",
+  "title": "Agent profile front matter",
+  "description": "The YAML front matter of profiles/<id>.md. scripts/check-profiles.sh enforces it with a small stdlib validator (type, enum, pattern, required, items, minItems, uniqueItems, minLength, additionalProperties, patternProperties, default). A field declares; it does not enforce. The body layout and caps are under x-body.",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "section",
+    "rank",
+    "mission",
+    "reports_to",
+    "lane",
+    "model",
+    "tools",
+    "inputs",
+    "outputs",
+    "escalates_to"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-[a-z0-9]+(-[a-z0-9]+)*$": {}
+  },
+  "properties": {
+    "id": {
+      "description": "<rank>-<role>. Equals the file name; the prefix equals rank.",
+      "type": "string",
+      "pattern": "^(scout|specialist|lead|staff)-[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "version": {
+      "description": "A quoted dotted number. Must rise when an authority field changes.",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$"
+    },
+    "section": {
+      "description": "The staff lane or echelon the profile belongs to (doctrine/units.md). There is no S5.",
+      "type": "string",
+      "enum": ["S1", "S2", "S3", "S4", "S6", "command", "fire-team"]
+    },
+    "rank": {
+      "description": "A permission tier (doctrine/units.md). Our extension, not army doctrine.",
+      "type": "string",
+      "enum": ["scout", "specialist", "lead", "staff"]
+    },
+    "mission": {
+      "description": "One-sentence standing objective.",
+      "type": "string",
+      "minLength": 1
+    },
+    "reports_to": {
+      "description": "A profile id, or owner.",
+      "type": "string",
+      "pattern": "^(owner|(scout|specialist|lead|staff)-[a-z0-9]+(-[a-z0-9]+)*)$"
+    },
+    "lane": {
+      "description": "read-only or write.",
+      "type": "string",
+      "enum": ["read-only", "write"]
+    },
+    "model": {
+      "description": "Default model tier or id, or auto.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "skills": {
+      "description": "Skill names only; the skills themselves stay in argus-config.",
+      "type": "array",
+      "default": [],
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9:_-]*$" }
+    },
+    "tools": {
+      "description": "Allowed and denied tools. Both lists are required so a change to either is visible.",
+      "type": "object",
+      "required": ["allow", "deny"],
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "deny": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "inputs": {
+      "description": "What the profile receives. The original issue text always travels verbatim, listed or not.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+    },
+    "outputs": {
+      "description": "What the profile reports.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+    },
+    "escalates_to": {
+      "description": "Where an owner question goes: a profile id, or owner.",
+      "type": "string",
+      "pattern": "^(owner|(scout|specialist|lead|staff)-[a-z0-9]+(-[a-z0-9]+)*)$"
+    },
+    "runtime": {
+      "description": "Reserved (D7). Defaults to claude; only claude is accepted while the fields are Claude-shaped.",
+      "type": "string",
+      "enum": ["claude"],
+      "default": "claude"
+    }
+  },
+  "x-authority": {
+    "description": "A change to any of these (compared with the base, defaults filled in) needs a higher version. The owner's approval is a review step the check cannot see.",
+    "fields": ["rank", "lane", "tools", "model", "runtime"]
+  },
+  "x-body": {
+    "description": "Body layout (D3): these sections in this order, then an optional Voice, then an optional Learned. Learned is capped (D8).",
+    "sections": ["Mission", "Owns", "Boundaries", "Procedure", "Done means", "Report format"],
+    "optionalSections": ["Voice", "Learned"],
+    "voiceMaxLines": 3,
+    "learnedMaxLines": 10,
+    "learnedMaxLineLength": 200
+  }
+}
