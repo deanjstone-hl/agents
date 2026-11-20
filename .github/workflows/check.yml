@@ -4,6 +4,9 @@ name: Check
 # No `if:` reads the commit subject: a push to main always runs the check.
 # The profile version-bump rule compares with a base ref, so the checkout carries the
 # history: a push is compared with the commit before it, a pull request with its base branch.
+# A pull request whose head branch starts with learned/ is a Learned-line proposal (agents#16),
+# so scripts/check-learned.sh checks its shape too; the head branch is read through env, never
+# interpolated into the script.
 
 on:
   pull_request:
@@ -26,6 +29,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           PUSH_BEFORE: ${{ github.event.before }}
           BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           if [ "$EVENT" = pull_request ]; then
             PROFILE_BASE="origin/$BASE_REF"
@@ -35,4 +39,7 @@ jobs:
             PROFILE_BASE=HEAD^1
           fi
           export PROFILE_BASE
+          case "$EVENT:$HEAD_REF" in
+            pull_request:learned/*) export LEARNED_PROPOSAL=1 ;;
+          esac
           bash scripts/check.sh
