@@ -511,7 +511,7 @@ if ! grep -qE '^## Rank ceiling$' "$repo/doctrine/units.md"; then
   fail "doctrine/units.md has no '## Rank ceiling' section"
 else
   for rank in scout specialist lead staff; do
-    grep -qE "^\| \`?$rank\`? \| .*\`" "$repo/doctrine/units.md" || fail "doctrine/units.md: the ceiling table has no row for $rank with backticked tools"
+    grep -qE "^\| \`?$rank\`? \| (.*\`|none \|)" "$repo/doctrine/units.md" || fail "doctrine/units.md: the ceiling table has no row for $rank with backticked tools (or none)"
   done
 fi
 

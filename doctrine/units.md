@@ -56,12 +56,14 @@ The most tools a profile of a rank may list in `tools.allow`. `scripts/check-pro
 | Rank | Adds to the tools of the rank below |
 | ---- | ----------------------------------- |
 | scout | `Read`, `Grep`, `Glob` |
-| specialist | `Bash`, `WebFetch` |
-| lead | `Edit`, `Write` |
+| specialist | `Bash`, `WebFetch`, `Edit`, `Write` |
+| lead | none |
 | staff | `*` |
 
-- A rank may list its own row and every row above it in the table: a specialist may list `Read`, `Grep`, `Glob`, `Bash` and `WebFetch`. `*` means every tool, MCP tools included.
-- The check reads one row per rank, lowest first, with each tool in backticks in the second column. Change a value by editing the table; the check follows it.
+- A rank may list its own row and every row above it in the table: a specialist may list `Read`, `Grep`, `Glob`, `Bash`, `WebFetch`, `Edit` and `Write`. `*` means every tool, MCP tools included.
+- A scout stays strictly read-only: `Read`, `Grep`, `Glob`. A specialist writes in its own worktree, so it may list `Edit` and `Write` (the owner moved them down from `lead` on 21 Nov 2026, [agents/22](https://github.com/deanjstone/agents/issues/22)).
+- `lead` adds no tool over `specialist`. Its difference is authority: it may launch children and steer workers, which a tool list does not express.
+- The check reads one row per rank, lowest first, with each tool in backticks in the second column, or `none` for a rank that adds no tool. Change a value by editing the table; the check follows it.
 - Claude tool names only. A tool with a pattern, such as `Bash(git status:*)`, is checked as `Bash`.
 - `tools.deny` is not checked against the table: a deny list only removes tools, so it can sit above a ceiling.
 - The ceiling limits what a profile may list. It does not grant anything: a profile still lists only the tools it needs.
