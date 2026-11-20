@@ -116,6 +116,7 @@ cat >"$fake_bin/systemctl" <<'FAKE'
 printf '%s\n' "$*" >>"$FAKE_LOG/systemctl.calls"
 FAKE
 chmod +x "$fake_bin/claude" "$fake_bin/gh" "$fake_bin/systemctl"
+export PATH="$fake_bin:$PATH"
 
 # new_case: a fresh HOME, state directory and fake log; the target repo the scout runs in.
 new_case() {
@@ -184,7 +185,7 @@ transcript 28000
 launch
 expect test "$rc" -eq 0
 expect test -s "$FAKE_LOG/posted.md"
-body=$(posted)
+body=$(posted || true)
 expect has '## Architecture scout, run 1 (week 2026-W47, 22 Nov 2026 07:00 AEDT)' "$body"
 expect has '### F1: Finding number 1' "$body"
 expect has '### F3: Finding number 3' "$body"
@@ -246,7 +247,7 @@ result_json success 41 "$(findings 2)"
 transcript 71234
 launch
 expect test "$rc" -eq 0
-body=$(posted)
+body=$(posted || true)
 expect has 'output tokens 71,234 (target 60,000)' "$body"
 expect has 'OVER the token target' "$body"
 expect lacks 'within caps' "$body"
@@ -258,7 +259,7 @@ result_json success 30 "$(findings 7)"
 transcript 20000
 launch
 expect test "$rc" -eq 0
-body=$(posted)
+body=$(posted || true)
 expect has '### F5: Finding number 5' "$body"
 expect lacks '### F6' "$body"
 expect has '2 findings dropped: over the cap of 5' "$body"
@@ -270,7 +271,7 @@ result_json success 12 "$bad"
 transcript 9000
 launch
 expect test "$rc" -eq 0
-body=$(posted)
+body=$(posted || true)
 expect has '### F1: Has one' "$body"
 expect lacks 'Has no question' "$body"
 expect has '1 finding dropped: no yes-or-no question' "$body"
@@ -281,7 +282,7 @@ result_json success 9 "No findings this week."
 transcript 3000
 launch
 expect test "$rc" -eq 0
-body=$(posted)
+body=$(posted || true)
 expect has 'No findings this week.' "$body"
 expect has 'within caps' "$body"
 expect has '"findings": 0' "$body"
@@ -292,7 +293,7 @@ result_json success 9 "I looked around and it seems fine."
 transcript 3000
 launch
 expect test "$rc" -eq 3
-body=$(posted)
+body=$(posted || true)
 expect has '"status": "bad-shape"' "$body"
 expect lacks 'seems fine' "$body"
 
@@ -302,7 +303,7 @@ result_json error_max_turns 60 ""
 transcript 52000
 launch
 expect test "$rc" -eq 3
-body=$(posted)
+body=$(posted || true)
 expect has 'Stopped at the turn cap (60 turns)' "$body"
 expect has '"status": "max-turns"' "$body"
 expect has 'output tokens 52,000' "$body"
@@ -314,7 +315,7 @@ result_json success 3 "$(findings 1)"
 transcript 1000
 SCOUT_TIMEOUT=1 launch
 expect test "$rc" -eq 3
-body=$(posted)
+body=$(posted || true)
 expect has 'Stopped at the time cap (1 s)' "$body"
 expect has '"status": "timeout"' "$body"
 
@@ -323,7 +324,7 @@ new_case
 result_json success 11 "$(findings 1)"
 launch
 expect test "$rc" -eq 3
-body=$(posted)
+body=$(posted || true)
 expect has 'output tokens unavailable (no transcript found)' "$body"
 expect lacks 'within caps' "$body"
 expect has '"status": "no-transcript"' "$body"
@@ -351,7 +352,7 @@ result_json success 5 "$(findings 1)"
 transcript 1000
 launch --force
 expect test "$rc" -eq 0
-body=$(posted)
+body=$(posted || true)
 expect has 'run 2 (week 2026-W47' "$body"
 # the earlier comment travels to the scout as prior findings, so it does not repeat them
 stdin=$(cat "$FAKE_LOG/claude.stdin")
