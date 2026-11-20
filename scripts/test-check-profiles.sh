@@ -662,6 +662,20 @@ units_file "$fx/units.md" '' '`Bash`' '`Edit`' '`*`'
 expect_fail "a rank with no tools" "AGP014" --units "$fx/units.md"
 
 new_fixture
+with_allow lead "[Read, Bash, Edit]"
+units_file "$fx/units.md" '`Read`' '`Bash`, `Edit`' 'none' '`*`'
+expect_pass "a row of none adds no tool: the rank lists what the rows below it allow" --units "$fx/units.md"
+
+new_fixture
+with_allow lead "[Read, Bash, Write]"
+units_file "$fx/units.md" '`Read`' '`Bash`, `Edit`' 'none' '`*`'
+expect_fail "a row of none does not let the rank list more than the rows below it" "AGP013" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" '`Read`' '`Bash`' 'none, `Edit`' '`*`'
+expect_fail "none mixed with tool names" "AGP014" --units "$fx/units.md"
+
+new_fixture
 units_file "$fx/units.md" 'Read, Grep' '`Bash`' '`Edit`' '`*`'
 expect_fail "tool names without backticks" "AGP014" --units "$fx/units.md"
 
