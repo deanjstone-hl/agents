@@ -73,6 +73,7 @@ class Errors:
 
 
 def load_checker():
+    sys.dont_write_bytecode = True  # importing the checker must not leave scripts/__pycache__ behind
     spec = importlib.util.spec_from_file_location("check_profiles", os.path.join(SCRIPTS, "check_profiles.py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
