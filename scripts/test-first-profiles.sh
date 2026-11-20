@@ -72,7 +72,7 @@ expect_no_tool() {
 
 expect_body() {
   cases=$((cases + 1))
-  grep -qF -- "$3" "profiles/$1.md" || fail "$1: body does not say '$3'"
+  grep -qF -- "$2" "profiles/$1.md" || fail "$1: body does not say '$2'"
 }
 
 expect_file() {
