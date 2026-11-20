@@ -2,6 +2,8 @@ name: Check
 
 # The repo's local check, `bash scripts/check.sh`, on every PR and every push to main.
 # No `if:` reads the commit subject: a push to main always runs the check.
+# The profile version-bump rule compares with a base ref, so the checkout carries the
+# history: a push is compared with the commit before it, a pull request with its base branch.
 
 on:
   pull_request:
@@ -17,5 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Check
-        run: bash scripts/check.sh
+        env:
+          EVENT: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            PROFILE_BASE="origin/$BASE_REF"
+          elif git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
+            PROFILE_BASE="$PUSH_BEFORE"
+          else
+            PROFILE_BASE=HEAD^1
+          fi
+          export PROFILE_BASE
+          bash scripts/check.sh

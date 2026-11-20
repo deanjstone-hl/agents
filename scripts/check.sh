@@ -4,7 +4,9 @@
 # personas, so the check lints them: every tracked .md file must be non-empty, valid
 # UTF-8, free of tabs-for-indent and trailing whitespace, with well-formed frontmatter
 # (when it starts with `---`, a closing `---` and `key: value` lines), and every
-# relative link must resolve to a tracked file. Needs only bash, git and python3.
+# relative link must resolve to a tracked file. It then checks profiles/*.md against
+# schema/profile.schema.json (scripts/check-profiles.sh) and runs that checker's tests.
+# Needs only bash, git and python3.
 # Prints `check: pass <short sha>` on success; any failure exits non-zero.
 set -euo pipefail
 
@@ -18,15 +20,21 @@ if [ "${HEAVY_LOCK_HELD:-}" != 1 ]; then
   exec bash "$PWD/scripts/heavy-lock.sh" bash "$PWD/scripts/check.sh" "$@"
 fi
 
-echo "check: step 1/3 shell syntax" >&2
+echo "check: step 1/5 script syntax" >&2
 for script in scripts/*.sh; do
   bash -n "$script" || {
-    echo "check: FAIL at step 1/3 (bash -n $script)" >&2
+    echo "check: FAIL at step 1/5 (bash -n $script)" >&2
+    exit 1
+  }
+done
+for script in scripts/*.py; do
+  python3 -I -c 'import ast, sys; ast.parse(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1])' "$script" || {
+    echo "check: FAIL at step 1/5 (python syntax $script)" >&2
     exit 1
   }
 done
 
-echo "check: step 2/3 markdown profiles" >&2
+echo "check: step 2/5 markdown" >&2
 git ls-files -z -- '*.md' | python3 -I -c '
 import os
 import re
@@ -91,13 +99,25 @@ if errors:
     sys.exit(1)
 print(f"markdown: {len(files)} file(s) ok", file=sys.stderr)
 ' || {
-  echo "check: FAIL at step 2/3 (markdown profiles)" >&2
+  echo "check: FAIL at step 2/5 (markdown)" >&2
   exit 1
 }
 
-echo "check: step 3/3 heavy lock wiring" >&2
+echo "check: step 3/5 profiles against the schema" >&2
+bash scripts/check-profiles.sh || {
+  echo "check: FAIL at step 3/5 (profiles)" >&2
+  exit 1
+}
+
+echo "check: step 4/5 profile check tests" >&2
+bash scripts/test-check-profiles.sh || {
+  echo "check: FAIL at step 4/5 (profile check tests)" >&2
+  exit 1
+}
+
+echo "check: step 5/5 heavy lock wiring" >&2
 bash scripts/check-heavy-lock.sh || {
-  echo "check: FAIL at step 3/3 (heavy lock wiring)" >&2
+  echo "check: FAIL at step 5/5 (heavy lock wiring)" >&2
   exit 1
 }
 

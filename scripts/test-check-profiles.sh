@@ -7,6 +7,8 @@ set -euo pipefail
 
 builtin cd "$(dirname "${BASH_SOURCE[0]}")/.."
 repo=$PWD
+# CI exports PROFILE_BASE for the real repo; a fixture has its own history.
+unset PROFILE_BASE
 checker="$repo/scripts/check-profiles.sh"
 schema="$repo/schema/profile.schema.json"
 
