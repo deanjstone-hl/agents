@@ -81,4 +81,4 @@ Result, evidence, open questions.
 
 Not checked: that `reports_to` or `escalates_to` name a profile that exists, and that a `scout` is `read-only`. Each needs a decision first; none is enforced yet. The ceiling limits tool names only; it does not read the rank's envelope in prose.
 
-A profile never edits itself. An agent may propose one Learned line only as a change to this repo that the owner reviews.
+A profile never edits itself. An agent may propose one Learned line only as a change to this repo that the owner reviews. `scripts/propose-learned.sh` builds that change and `scripts/check-learned.sh` checks its shape (`LRN001` to `LRN006`); the [README](../README.md#learned-lines) has the flow.
