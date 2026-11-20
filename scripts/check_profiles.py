@@ -2,7 +2,7 @@
 
 Run through scripts/check-profiles.sh. Standard library only: the check needs bash, git and
 python3 and nothing else, so it carries a small validator for the JSON Schema keywords the
-schema uses and a reader for the YAML subset a profile's front matter is allowed to use
+schemas use (scripts/check_units.py reuses it for the unit files) and a reader for the YAML subset a profile's front matter is allowed to use
 (`key: scalar`, `key: [a, b]`, and one nested level of mappings and `- item` lists).
 
 Every failure prints `profiles/<file>:<line>: AGPnnn: <message>` and the exit status is 1.
@@ -266,6 +266,8 @@ def validate(value, schema, path, errors):
         pattern = schema.get("pattern")
         if pattern and not re.search(pattern, value):
             errors.append((path, "AGP004", f"{path}: {value!r} does not match {pattern}"))
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and value < schema.get("minimum", value):
+        errors.append((path, "AGP004", f"{path}: {value} is below the minimum {schema['minimum']}"))
     if isinstance(value, dict):
         properties = schema.get("properties", {})
         extensions = [re.compile(p) for p in schema.get("patternProperties", {})]

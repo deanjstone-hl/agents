@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/deanjstone/agents/blob/main/schema/unit.schema.json",
+  "title": "Unit file",
+  "description": "units/<unit>.yaml: which profiles pair up as a fire team and when the pair reviews. scripts/check-units.sh enforces it with the same small stdlib validator as the profile check (type, enum, pattern, required, items, minItems, uniqueItems, minimum, additionalProperties, patternProperties). A field declares; it does not enforce, except what check-units.sh adds beyond the schema: both profiles exist, the reviewer is not the builder, the reviewer cannot write and takes a diff, and the reviewer's report does not go through the builder.",
+  "type": "object",
+  "required": ["unit", "version", "fire_teams"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-[a-z0-9]+(-[a-z0-9]+)*$": {}
+  },
+  "properties": {
+    "unit": {
+      "description": "The unit's name. Equals the file name.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "version": {
+      "description": "A quoted dotted number. Rises when a pairing or a threshold changes.",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$"
+    },
+    "fire_teams": {
+      "description": "A mapping of team name (lowercase words and hyphens) to a team, each validated against x-team. At least one.",
+      "type": "object"
+    }
+  },
+  "x-team": {
+    "description": "A builder and a reviewer. A buddy-pair analogy, not the doctrinal four-member fire team (doctrine/units.md, where the analogy breaks).",
+    "type": "object",
+    "required": ["builder", "reviewer", "trigger", "threshold", "gate"],
+    "additionalProperties": false,
+    "patternProperties": {
+      "^x-[a-z0-9]+(-[a-z0-9]+)*$": {}
+    },
+    "properties": {
+      "builder": {
+        "description": "The profile that writes the change.",
+        "type": "string",
+        "pattern": "^(scout|specialist|lead|staff)-[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "reviewer": {
+        "description": "The profile that reviews it with a clean context. Never the builder.",
+        "type": "string",
+        "pattern": "^(scout|specialist|lead|staff)-[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "trigger": {
+        "description": "When the reviewer runs. Only changed-lines: added plus deleted lines of the change (git diff --numstat), more than threshold.",
+        "type": "string",
+        "enum": ["changed-lines"]
+      },
+      "threshold": {
+        "description": "Changed lines above which the reviewer runs. Starts at 300 (argus-config#824: single-pass review tied the fan-out up to 300 lines and lost at 585 and over).",
+        "type": "integer",
+        "minimum": 1
+      },
+      "gate": {
+        "description": "The mechanical checks that stay the gate whatever the reviewer says. Never empty: a reviewer is never the sole gate (D6).",
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+      }
+    }
+  }
+}

@@ -226,11 +226,15 @@ printf 'this is not a mapping\n' >>"$fx/units/aquila.yaml"
 expect_fail "a line that is not key: value" "AGU005"
 
 valid_fixture
+sed -i 's/^unit: aquila$/unit: other/' "$fx/units/aquila.yaml"
+expect_fail "a unit that is not the file name" "AGU011"
+
+valid_fixture
 sed -i 's/^fire_teams:$/fire_teams: none/' "$fx/units/aquila.yaml"
 expect_fail "fire_teams that is not a mapping" "AGU004"
 
 valid_fixture
-sed -i 's/^  slot:$/  Slot Team:/' "$fx/units/aquila.yaml"
+sed -i 's/^  slot:$/  Slot_Team:/' "$fx/units/aquila.yaml"
 expect_fail "a team name that is not lowercase words" "AGU004"
 
 valid_fixture
@@ -267,6 +271,7 @@ expect_trigger() {
 }
 
 valid_fixture
+for ((i = 0; i < 50; i++)); do echo "old line $i"; done >"$fx/old.txt"
 git -C "$fx" add -A
 git -C "$fx" commit -q -m base
 base=$(git -C "$fx" rev-parse HEAD)
@@ -277,7 +282,7 @@ expect_trigger "exactly the threshold is not large" skip 300 --base "$base" --he
 lines_commit b.txt 1
 expect_trigger "one line over the threshold is large" required 301 --base "$base" --head HEAD
 
-sed -i '1,10d' "$fx/a.txt"
+sed -i '1,10d' "$fx/old.txt"
 git -C "$fx" add -A
 git -C "$fx" commit -q -m "delete 10 lines"
 expect_trigger "deleted lines count too" required 311 --base "$base" --head HEAD
