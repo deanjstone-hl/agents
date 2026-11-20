@@ -19,6 +19,8 @@ Every failure prints `profiles/<file>:<line>: AGPnnn: <message>` and the exit st
   AGP010  Learned is over the line or length cap
   AGP011  authority field changed without a higher version
   AGP012  front matter missing, unclosed or not readable
+  AGP013  tools.allow lists a tool above the rank's ceiling (doctrine/units.md, Rank ceiling)
+  AGP014  the rank ceiling table cannot be read: file, section, table, rows or tool names
 """
 
 import argparse
@@ -31,6 +33,9 @@ import sys
 
 REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 SCHEMA_PATH = os.path.join(REPO, "schema", "profile.schema.json")
+UNITS_PATH = os.path.join(REPO, "doctrine", "units.md")
+UNITS_DISPLAY = "doctrine/units.md"
+CEILING_HEADING = "## Rank ceiling"
 DEFAULT_BASE = "origin/main"
 
 
@@ -394,6 +399,122 @@ def check_body(body_rows, schema, path, findings):
                 break
 
 
+# --- the rank-to-tools ceiling (agents#21) -----------------------------------------------------
+
+TOOL_NAME = re.compile(r"^(\*|[A-Za-z][A-Za-z0-9_:.-]*)$")
+SEPARATOR_CELL = re.compile(r"^:?-+:?$")
+
+
+def table_cells(line):
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def parse_tool_cell(cell):
+    """The backticked tool names in a table cell, or (None, why) when the cell is not only
+    backticked names joined by commas or 'and'."""
+    names = re.findall(r"`([^`]*)`", cell)
+    leftover = re.sub(r"\band\b|[,\s]", "", re.sub(r"`[^`]*`", "", cell))
+    if not names:
+        return None, "lists no tools (write each tool name in backticks)"
+    if leftover:
+        return None, f"has text outside the backticks: '{leftover}'"
+    for name in names:
+        if not TOOL_NAME.match(name):
+            return None, f"has '{name}', which is not a tool name (or * for every tool)"
+    return names, None
+
+
+def load_ceiling(path, display, ranks, findings):
+    """Read the `## Rank ceiling` table of the units doctrine.
+
+    One row per rank, lowest first; the second column holds the tools that rank adds to those of
+    the rank below, each in backticks (`*` is every tool). Returns {rank: (tools in table order,
+    every tool)} with the lower ranks already folded in, or None after adding AGP014 findings."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (UnicodeDecodeError, OSError) as exc:
+        findings.add(display, 0, "AGP014", f"cannot read the rank ceiling table: {exc}")
+        return None
+    start = next((i for i, line in enumerate(lines) if line.rstrip() == CEILING_HEADING), None)
+    if start is None:
+        findings.add(display, 1, "AGP014", f"no '{CEILING_HEADING}' section")
+        return None
+    rows = []
+    for index in range(start + 1, len(lines)):
+        line = lines[index]
+        if re.match(r"^#{1,2} ", line):
+            break
+        if line.lstrip().startswith("|"):
+            rows.append((index + 1, table_cells(line)))
+    rows = [row for row in rows[1:] if not all(SEPARATOR_CELL.match(cell) for cell in row[1])]
+    if not rows:
+        findings.add(display, start + 1, "AGP014", f"'{CEILING_HEADING}' holds no table of rank rows")
+        return None
+
+    before = len(findings)
+    seen, added = [], {}
+    for number, cells in rows:
+        rank = cells[0].strip("`*_ ")
+        if rank not in ranks:
+            findings.add(display, number, "AGP014", f"'{rank}' is not a rank ({', '.join(ranks)})")
+            continue
+        if rank in seen:
+            findings.add(display, number, "AGP014", f"rank '{rank}' is listed twice")
+            continue
+        seen.append(rank)
+        names, why = parse_tool_cell(cells[1] if len(cells) > 1 else "")
+        if why:
+            findings.add(display, number, "AGP014", f"the {rank} row {why}")
+        else:
+            added[rank] = names
+    missing = [rank for rank in ranks if rank not in seen]
+    if missing:
+        findings.add(display, start + 1, "AGP014", f"the table has no row for {', '.join(missing)}")
+    elif seen != list(ranks):
+        findings.add(display, start + 1, "AGP014", f"the rows must run {' > '.join(ranks)}: a rank inherits the rows above it")
+    if len(findings) > before:
+        return None
+
+    ceiling, tools = {}, []
+    for rank in ranks:
+        tools = tools + [name for name in added[rank] if name not in tools]
+        ceiling[rank] = (list(tools), "*" in tools)
+    return ceiling
+
+
+def tool_name(entry):
+    """`Bash(git status:*)` is the tool Bash with a narrower pattern."""
+    return entry.split("(", 1)[0].strip()
+
+
+def check_ceiling(front, path, line_of, ceiling, ranks, findings):
+    rank, tools = front.get("rank"), front.get("tools")
+    if not isinstance(rank, str) or rank not in ceiling or not isinstance(tools, dict):
+        return
+    allow = tools.get("allow")
+    if not isinstance(allow, list):
+        return
+    allowed, everything = ceiling[rank]
+    if everything:
+        return
+    above = []
+    for entry in allow:
+        if not isinstance(entry, str) or tool_name(entry) in allowed or entry in above:
+            continue
+        above.append(entry)
+    if not above:
+        return
+    parts = []
+    for entry in above:
+        first = next((r for r in ranks if tool_name(entry) in ceiling[r][0] or ceiling[r][1]), None)
+        parts.append(f"{entry} (first allowed at {first})" if first else f"{entry} (in no rank's row)")
+    findings.add(
+        path, line_of("tools"), "AGP013",
+        f"tools.allow lists above the {rank} ceiling: {', '.join(parts)}; a {rank} may list {', '.join(allowed)}",
+    )
+
+
 # --- authority changes against the base -------------------------------------------------------
 
 
@@ -454,6 +575,7 @@ def check_authority(root, base, effective_by_stem, schema, findings):
 def main():
     parser = argparse.ArgumentParser(prog="check-profiles.sh", description=__doc__.split("\n")[0])
     parser.add_argument("--root", default=REPO, help="repository holding profiles/ (default: this repository)")
+    parser.add_argument("--units", default=None, help=f"file holding the '{CEILING_HEADING}' table (default {UNITS_DISPLAY} in this repository)")
     parser.add_argument("--base", default=None, help=f"ref the version-bump rule compares with (default {DEFAULT_BASE}; env PROFILE_BASE)")
     args = parser.parse_args()
     root = os.path.abspath(args.root)
@@ -466,6 +588,8 @@ def main():
         schema = json.load(handle)
 
     findings = Findings()
+    ranks = schema["properties"]["rank"]["enum"]
+    ceiling = load_ceiling(args.units or UNITS_PATH, args.units or UNITS_DISPLAY, ranks, findings)
     profile_dir = os.path.join(root, "profiles")
     names = sorted(n for n in os.listdir(profile_dir) if n.endswith(".md") and n != "README.md") if os.path.isdir(profile_dir) else []
 
@@ -484,6 +608,8 @@ def main():
             continue
         check_identity(effective, stem, rel, line_of, findings)
         check_body(body_rows, schema, rel, findings)
+        if ceiling:
+            check_ceiling(effective, rel, line_of, ceiling, ranks, findings)
         effective_by_stem[stem] = (rel, effective)
 
     resolvable = git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}").returncode == 0

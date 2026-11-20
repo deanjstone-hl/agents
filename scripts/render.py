@@ -254,6 +254,8 @@ def load_profiles(root, checker, errors):
     with open(SCHEMA_PATH, encoding="utf-8") as handle:
         schema = json.load(handle)
     findings = checker.Findings()
+    ranks = schema["properties"]["rank"]["enum"]
+    ceiling = checker.load_ceiling(checker.UNITS_PATH, checker.UNITS_DISPLAY, ranks, findings)
     profile_dir = os.path.join(root, "profiles")
     names = sorted(n for n in os.listdir(profile_dir) if n.endswith(".md") and n != "README.md") if os.path.isdir(profile_dir) else []
     loaded = []
@@ -270,6 +272,8 @@ def load_profiles(root, checker, errors):
             continue
         checker.check_identity(front, name[:-3], rel, line_of, findings)
         checker.check_body(body_rows, schema, rel, findings)
+        if ceiling:
+            checker.check_ceiling(front, rel, line_of, ceiling, ranks, findings)
         loaded.append((rel, front, "\n".join(trim_blank([row[1] for row in body_rows]))))
     if findings.items:
         for path, line, code, message in findings.items:

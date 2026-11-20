@@ -47,7 +47,25 @@ The tiers, lowest to highest: **scout → specialist → lead → staff**.
 | lead | A specialist that may also launch children and steer workers | None today. Reserved |
 | staff | Runs a lane with loop-state tools and a lease | Aquila (`direction` and `afk`) |
 
-A rank names an envelope and nothing else. The profile states what it may do; the rank is the label people read. A change to a profile's `rank`, `lane`, `tools` or `model` is an authority change and needs the owner's approval.
+A rank names an envelope. The profile states what it may do; the rank is the label people read, and the [rank ceiling](#rank-ceiling) below caps the tools a profile of that rank may list. A change to a profile's `rank`, `lane`, `tools` or `model` is an authority change and needs the owner's approval.
+
+## Rank ceiling
+
+The most tools a profile of a rank may list in `tools.allow`. `scripts/check-profiles.sh` reads this table and fails a profile that lists a tool above its rank's ceiling (`AGP013`), and fails when the table cannot be read (`AGP014`). The owner chose to enforce it on 21 Nov 2026.
+
+| Rank | Adds to the tools of the rank below |
+| ---- | ----------------------------------- |
+| scout | `Read`, `Grep`, `Glob` |
+| specialist | `Bash`, `WebFetch` |
+| lead | `Edit`, `Write` |
+| staff | `*` |
+
+- A rank may list its own row and every row above it in the table: a specialist may list `Read`, `Grep`, `Glob`, `Bash` and `WebFetch`. `*` means every tool, MCP tools included.
+- The check reads one row per rank, lowest first, with each tool in backticks in the second column. Change a value by editing the table; the check follows it.
+- Claude tool names only. A tool with a pattern, such as `Bash(git status:*)`, is checked as `Bash`.
+- `tools.deny` is not checked against the table: a deny list only removes tools, so it can sit above a ceiling.
+- The ceiling limits what a profile may list. It does not grant anything: a profile still lists only the tools it needs.
+- Editing a row changes what every profile of that rank may list, so it is an authority change and needs the owner's approval.
 
 ## Call signs
 
