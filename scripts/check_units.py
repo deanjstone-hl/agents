@@ -25,6 +25,7 @@ import os
 import re
 import sys
 
+sys.dont_write_bytecode = True  # importing the checker must not leave scripts/__pycache__ behind
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import check_profiles as cp  # noqa: E402
