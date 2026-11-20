@@ -30,6 +30,13 @@ bash scripts/check.sh
 
 The repo follows the trunk-readiness gate (`scripts/trunk-readiness.sh` in argus-config): a committed check, CI on push to `main` that runs it, and a green `main`.
 
+The README guard ([`readme-guard.yml`](.github/workflows/readme-guard.yml), logic in
+[`.github/scripts/readme-guard.sh`](.github/scripts/readme-guard.sh), vendored from
+[argus-config/1147](https://github.com/deanjstone/argus-config/issues/1147)) runs on every push to `main`, always on `ubuntu-latest`. It
+fails a push that changes `package.json` scripts or `bin`, a workflow, a deploy or install script, an env template or
+a CLI entry point without touching a README, unless a commit message carries `README: not needed because <reason>`.
+Change the script in argus-config and re-copy it; do not edit it here.
+
 ## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
