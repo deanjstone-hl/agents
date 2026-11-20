@@ -8,15 +8,15 @@ The structure is a naming and permission scheme, not a chain of command: owner, 
 | Path | Holds |
 | ---- | ----- |
 | [doctrine/units.md](doctrine/units.md) | Echelons, staff lanes, rank tiers, the rank-to-tools ceiling, call signs and where the analogy breaks |
-| [doctrine/culture.md](doctrine/culture.md) | What every profile shares, starting with the three-line voice |
+| [doctrine/culture.md](doctrine/culture.md) | What every profile shares: the three-line voice and the working rules (state not memory, trust the labels, own the outcome, live changes need the owner's yes, notation, the owner-first Resolution, plain commands, `Ready to settle:`) |
 | [schema/](schema/README.md) | The profile schema (`profile.schema.json`): fields, enums, body layout and the rules the check enforces |
-| [profiles/](#first-profiles) | One `<rank>-<role>.md` per profile, checked against the schema: the first four are listed under [First profiles](#first-profiles) |
+| [profiles/](#first-profiles) | One `<rank>-<role>.md` per profile, checked against the schema: the first four are listed under [First profiles](#first-profiles), the orchestrator under [The orchestrator](#the-orchestrator) |
 | [templates/brief.md](templates/brief.md) | The brief template `render.sh` fills for each profile |
 | `generated/` | Committed output of `render.sh`: `agents/<id>.md` and `briefs/<id>.md` per profile |
 | [units/](#fire-team) | `aquila.yaml`: which profiles pair up as a fire team and when the pair reviews, checked against [`schema/unit.schema.json`](schema/unit.schema.json) |
 | `scripts/` | The local check, the profile and unit checks, the renderer and the review trigger |
 
-`staff-xo` is added by a later step. The plan and every decision are in [agents/1](https://github.com/deanjstone/agents/issues/1).
+The plan and every decision are in [agents/1](https://github.com/deanjstone/agents/issues/1).
 
 ## How it reaches a session
 
@@ -47,6 +47,12 @@ The reviewer ([agents/11](https://github.com/deanjstone/agents/issues/11), owner
 
 Render a reviewer brief the way `## Inputs` says: `bash scripts/render.sh --brief specialist-reviewer --issue-file issue.txt --input diff=changes.diff --input checkout=checkout-path.txt`. The tests are `scripts/test-fire-team.sh`, run by `check.sh`. Nothing launches the reviewer yet: wiring it into the orchestrator's briefs is [agents/13](https://github.com/deanjstone/agents/issues/13).
 
+## The orchestrator
+
+[`staff-xo`](profiles/staff-xo.md) ([agents/15](https://github.com/deanjstone/agents/issues/15)) is Aquila, the orchestrator and the only profile of rank `staff` (section `command`, lane `write`, every tool, model `sonnet`, reports to and escalates to the owner). It holds the charter's role text: the name and who may use it, the two loop-state roles and their leases, authority, the turn classes, the split and single-thread modes, the decision queue, away behaviour and how a slot close is verified. Its Procedure ends on a pointer to the **runbook**: the charter's operating mechanics (the tick checklist, filling a slot and its gates, homelab standby, handover, cross-env control, notifications, budget, degradation and rotation) stay in [`orchestrator.md`](https://github.com/deanjstone/argus-config/blob/main/envs/wsl2/charters/orchestrator.md) in argus-config, about 87 KB that would tie this repo to loop-state internals. argus-config joins the generated profile and the runbook when it consumes `generated/` ([agents/1](https://github.com/deanjstone/agents/issues/1), A18); nothing live changes until it promotes that.
+
+The shared rules the charter repeated in more than one place moved into [`doctrine/culture.md`](doctrine/culture.md), one copy each, and so reach every generated charter and brief. The inventory behind the split is in [agents/6](https://github.com/deanjstone/agents/issues/6#issuecomment-7037964961). The existing profiles may still repeat a rule in their own words. `scripts/test-staff-xo.sh` pins the profile's envelope and the rules it must carry and the culture must hold.
+
 ## Local check
 
 Run the check before every push; CI runs the same command on every PR and every push to `main`:
@@ -55,7 +61,7 @@ Run the check before every push; CI runs the same command on every PR and every 
 bash scripts/check.sh
 ```
 
-`scripts/check.sh` needs only bash, git and python3. It runs ten steps: the shell and Python scripts parse; every tracked `.md` file is linted (non-empty, no trailing whitespace, newline at end of file, well-formed frontmatter with a closing `---` and `key: value` lines, every relative link resolving to a tracked file); every `profiles/*.md` is checked against the profile schema (below); the tests of that profile check run; the tests of the renderer run; `scripts/render.sh --check` fails if the committed `generated/` is not what the sources render to; `scripts/check-heavy-lock.sh` checks the lock wiring below; `scripts/test-first-profiles.sh` pins what the four first profiles say (rank, lane, tools, and the rules each must carry); `scripts/check-units.sh` checks the unit files; and `scripts/test-fire-team.sh` runs the tests of the unit check, the size trigger and the reviewer profile. It prints `check: pass <short sha>` on success and exits non-zero on any failure. The gate takes the host-wide heavy lock ([argus-config/1506](https://github.com/deanjstone/argus-config/issues/1506)): `scripts/check.sh` re-runs itself through `scripts/heavy-lock.sh`, so only one full check runs at a time on a host, whichever thread or CI job starts it, and it also waits while memory `some avg60` is 10 or more. A queued run prints `waiting for the host lock` and starts when the holder ends; it exits 75 without running once `HEAVY_LOCK_TIMEOUT` (3600 s) passes. `scripts/heavy-lock.sh` and `scripts/heavy-lock.lock` are vendored byte-for-byte from argus-config (its `scripts/sync-heavy-lock.sh` rewrites both; never edit them here), and `scripts/check-heavy-lock.sh` fails on a copy that no longer matches its lock.
+`scripts/check.sh` needs only bash, git and python3. It runs eleven steps: the shell and Python scripts parse; every tracked `.md` file is linted (non-empty, no trailing whitespace, newline at end of file, well-formed frontmatter with a closing `---` and `key: value` lines, every relative link resolving to a tracked file); every `profiles/*.md` is checked against the profile schema (below); the tests of that profile check run; the tests of the renderer run; `scripts/render.sh --check` fails if the committed `generated/` is not what the sources render to; `scripts/check-heavy-lock.sh` checks the lock wiring below; `scripts/test-first-profiles.sh` pins what the four first profiles say (rank, lane, tools, and the rules each must carry); `scripts/check-units.sh` checks the unit files; `scripts/test-fire-team.sh` runs the tests of the unit check, the size trigger and the reviewer profile; and `scripts/test-staff-xo.sh` pins the `staff-xo` profile and the culture's working rules. It prints `check: pass <short sha>` on success and exits non-zero on any failure. The gate takes the host-wide heavy lock ([argus-config/1506](https://github.com/deanjstone/argus-config/issues/1506)): `scripts/check.sh` re-runs itself through `scripts/heavy-lock.sh`, so only one full check runs at a time on a host, whichever thread or CI job starts it, and it also waits while memory `some avg60` is 10 or more. A queued run prints `waiting for the host lock` and starts when the holder ends; it exits 75 without running once `HEAVY_LOCK_TIMEOUT` (3600 s) passes. `scripts/heavy-lock.sh` and `scripts/heavy-lock.lock` are vendored byte-for-byte from argus-config (its `scripts/sync-heavy-lock.sh` rewrites both; never edit them here), and `scripts/check-heavy-lock.sh` fails on a copy that no longer matches its lock.
 
 ### Profile check
 

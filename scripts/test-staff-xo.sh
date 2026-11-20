@@ -67,7 +67,7 @@ expect_field "$xo" lane write
 expect_field "$xo" reports_to owner
 expect_field "$xo" escalates_to owner
 expect_field "$xo" model sonnet
-expect_in "profiles/$xo.md" 'allow: [*]'
+expect_in "profiles/$xo.md" 'allow: ["*"]'
 
 # --- role rules the profile must carry (orchestrator.md role text) --------------------------
 for phrase in \
@@ -102,8 +102,8 @@ for phrase in \
   '`child_start`' \
   '`child_close`' \
   'Only you close a slot issue' \
-  '`verify-claim.sh merged`' \
-  '`verify-claim.sh pushed`' \
+  'verify-claim.sh merged' \
+  'verify-claim.sh pushed' \
   '`promotion_flag_raise`' \
   'A close counts as verified only when' \
   'Reactive launch only' \
