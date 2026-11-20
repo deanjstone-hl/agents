@@ -253,7 +253,7 @@ EOF
 fi
 
 new_fixture
-valid_text scout reader | sed -e 's/^model: auto/model: opus/' -e '/^skills:/d' -e 's/^  deny: .*/  deny: []/' | put scout-reader
+valid_text scout reader | sed -e 's/^model: auto/model: opus/' -e '/^skills:/d' -e 's/^  deny: .*/  deny: []/' -e 's/^  allow: .*/  allow: [Read, Grep, Glob]/' | put scout-reader
 expect_pass "a pinned model, no skills, no denied tools"
 a=$(agent_file scout-reader)
 has_line "$a" "model: opus" "a pinned model passes through"
@@ -446,6 +446,12 @@ expect_fail "an invalid profile" "AGP004"
 new_fixture
 valid_text | sed 's/^id: .*/id: specialist-other/' | put specialist-reviewer
 expect_fail "an id that is not the file name" "AGP005"
+
+new_fixture
+valid_text | put specialist-reviewer
+valid_text scout reader | sed 's/^  allow: .*/  allow: [Read, Edit]/' | put scout-reader
+expect_fail "a profile above its rank's tool ceiling" "AGP013"
+[ ! -e "$fx/generated" ] || fail "a profile above its rank's tool ceiling: something was written"
 
 # --- text the renderer must not carry over -------------------------------------------------
 

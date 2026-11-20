@@ -73,7 +73,9 @@ EOF
 
 # A valid profile: valid_text [rank] [role]
 valid_text() {
-  local rank=${1:-specialist} role=${2:-reviewer}
+  local rank=${1:-specialist} role=${2:-reviewer} allow="[Read, Grep, Glob, Bash]"
+  # A scout stays inside its ceiling (doctrine/units.md, Rank ceiling): no Bash.
+  if [ "$rank" = scout ]; then allow="[Read, Grep, Glob]"; fi
   cat <<EOF
 ---
 id: $rank-$role
@@ -86,7 +88,7 @@ lane: read-only
 model: auto
 skills: [tdd]
 tools:
-  allow: [Read, Grep, Glob, Bash]
+  allow: $allow
   deny: [Edit, Write]
 inputs: [issue_text, diff]
 outputs: [report]
@@ -400,7 +402,7 @@ expect_pass "lane changed, version bumped" --base HEAD
 base_then_edit 's/^model: .*/model: opus/'
 expect_fail "model changed, version kept" "AGP011" --base HEAD
 
-base_then_edit 's/^  allow: .*/  allow: [Read, Grep, Glob, Bash, Edit]/'
+base_then_edit 's/^  allow: .*/  allow: [Read, Grep, Glob, Bash, WebFetch]/'
 expect_fail "tools changed, version kept" "AGP011" --base HEAD
 
 base_then_edit 's/^  deny: .*/  deny: [Write]/;s/^version: .*/version: "1.1"/'
@@ -469,6 +471,207 @@ out=$(PROFILE_BASE=HEAD bash "$checker" --root "$fx" 2>&1) || rc=$?
 if [ "$rc" -eq 0 ] || ! grep -qF AGP011 <<<"$out"; then
   fail "PROFILE_BASE is not read: exit $rc: $out"
 fi
+
+# --- the rank ceiling (agents#21) ---------------------------------------------------------
+
+# The table is read from doctrine/units.md (--units overrides the file in these cases). Each
+# case that needs a different table writes its own file; the values of the real table are the
+# owner's to change, so the cases against it use only the first rows: scout reads, specialist
+# adds Bash and WebFetch, lead adds Edit and Write, staff takes everything.
+
+# with_allow <rank> <flow list>: a valid profile of that rank listing exactly those tools.
+with_allow() {
+  local rank=$1 list=$2
+  valid_text "$rank" worker | sed "s/^  allow: .*/  allow: $list/" | put "$rank-worker"
+}
+
+# A units file with a table of four rank rows: units_file <path> <scout> <specialist> <lead> <staff>
+units_file() {
+  local path=$1
+  cat >"$path" <<EOF
+# Units
+
+## Rank ceiling
+
+| Rank | Adds to the tools of the rank below |
+| ---- | ----------------------------------- |
+| scout | $2 |
+| specialist | $3 |
+| lead | $4 |
+| staff | $5 |
+
+## Next section
+
+Text.
+EOF
+}
+
+cases=$((cases + 1))
+if ! grep -qE '^## Rank ceiling$' "$repo/doctrine/units.md"; then
+  fail "doctrine/units.md has no '## Rank ceiling' section"
+else
+  for rank in scout specialist lead staff; do
+    grep -qE "^\| \`?$rank\`? \| .*\`" "$repo/doctrine/units.md" || fail "doctrine/units.md: the ceiling table has no row for $rank with backticked tools"
+  done
+fi
+
+new_fixture
+with_allow scout "[Read, Grep, Glob]"
+expect_pass "a scout inside its ceiling"
+
+new_fixture
+with_allow scout "[Read, Grep, Glob, Edit]"
+expect_fail "a scout listing Edit" "AGP013"
+grep -qF "Edit" <<<"$out" || fail "scout Edit: the message does not name the tool: $out"
+grep -qF "scout" <<<"$out" || fail "scout Edit: the message does not name the rank: $out"
+grep -qF "profiles/scout-worker.md:" <<<"$out" || fail "scout Edit: the message does not name the file: $out"
+grep -qF "lead" <<<"$out" || fail "scout Edit: the message does not name the lowest rank that allows it (lead): $out"
+
+new_fixture
+with_allow scout "[Read, Bash]"
+expect_fail "a scout listing Bash" "AGP013"
+
+new_fixture
+with_allow scout "[Read, Edit, Write, WebFetch]"
+expect_fail "a scout listing several tools above its ceiling" "AGP013"
+for tool in Edit Write WebFetch; do
+  grep -qF "$tool" <<<"$out" || fail "several tools: the message does not name $tool: $out"
+done
+
+new_fixture
+with_allow specialist "[Read, Grep, Glob, Bash, WebFetch]"
+expect_pass "a specialist inherits the scout tools and adds Bash and WebFetch"
+
+new_fixture
+with_allow specialist "[Read, Edit]"
+expect_fail "a specialist listing Edit" "AGP013"
+
+new_fixture
+with_allow lead "[Read, Grep, Glob, Bash, WebFetch, Edit, Write]"
+expect_pass "a lead inherits both lower ranks and adds Edit and Write"
+
+new_fixture
+with_allow lead "[Read, Agent]"
+expect_fail "a lead listing a tool the table gives only staff" "AGP013"
+
+new_fixture
+with_allow staff "[Read, Edit, Write, Bash, Agent, mcp__loop-state__slot_list]"
+expect_pass "staff may list any tool, MCP tools included"
+
+new_fixture
+with_allow specialist "[Read, Bash(git status:*)]"
+expect_pass "a parameterised tool is checked by its name"
+
+new_fixture
+with_allow scout "[Read, Bash(git status:*)]"
+expect_fail "a parameterised tool above the ceiling" "AGP013"
+
+new_fixture
+with_allow scout "[Read, mcp__loop-state__slot_list]"
+expect_fail "an MCP tool above a scout's ceiling" "AGP013"
+
+new_fixture
+with_allow scout "[]"
+expect_pass "an empty allow list is inside every ceiling"
+
+new_fixture
+valid_text scout worker | sed 's/^  deny: .*/  deny: [Edit, Write, Bash, WhateverTool]/' | put scout-worker
+expect_pass "deny is not checked against the table"
+
+new_fixture
+valid_text sergeant worker | put sergeant-worker
+expect_fail "an unknown rank is only a schema error" "AGP004"
+grep -qF "AGP013" <<<"$out" && fail "an unknown rank must not also report AGP013: $out"
+
+new_fixture
+with_allow scout "[Read, Edit]"
+line=$(grep -n '^  allow:' "$fx/profiles/scout-worker.md" | head -1 | cut -d: -f1)
+tools_line=$(grep -n '^tools:' "$fx/profiles/scout-worker.md" | head -1 | cut -d: -f1)
+run_check
+grep -qF "profiles/scout-worker.md:$tools_line: AGP013" <<<"$out" || fail "the finding is not on the tools line ($tools_line, allow line $line): $out"
+
+# The table is the source: change it and the same profile passes or fails.
+new_fixture
+with_allow scout "[Read, Edit]"
+units_file "$fx/units.md" '`Read`, `Grep`, `Glob`, `Edit`' '`Bash`' '`Write`' '`*`'
+expect_pass "the table is read from the file, not built in" --units "$fx/units.md"
+
+new_fixture
+with_allow lead "[Read, Agent]"
+units_file "$fx/units.md" '`Read`' '`Bash`' '`*`' '`Agent`'
+expect_pass "a * row allows every tool from that rank up" --units "$fx/units.md"
+
+new_fixture
+with_allow specialist "[Read, Agent]"
+units_file "$fx/units.md" '`Read`' '`Bash`' '`*`' '`Agent`'
+expect_fail "a * row above the profile's rank does not reach it" "AGP013" --units "$fx/units.md"
+
+new_fixture
+with_allow scout "[Read]"
+units_file "$fx/units.md" '`Read`, `Grep`' '`Bash` and `WebFetch`' '`Edit`' '`*`'
+expect_pass "tools may be joined with 'and'" --units "$fx/units.md"
+
+# A table that cannot be read fails the check, with or without profiles.
+new_fixture
+expect_fail "a units file that does not exist" "AGP014" --units "$fx/no-such-units.md"
+
+new_fixture
+printf '# Units\n\nNo ceiling here.\n' >"$fx/units.md"
+expect_fail "no Rank ceiling section" "AGP014" --units "$fx/units.md"
+
+new_fixture
+printf '# Units\n\n## Rank ceiling\n\nNo table.\n' >"$fx/units.md"
+expect_fail "a Rank ceiling section without a table" "AGP014" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" '`Read`' '`Bash`' '`Edit`' '`*`'
+sed -i '/^| lead |/d' "$fx/units.md"
+expect_fail "a rank missing from the table" "AGP014" --units "$fx/units.md"
+grep -qF "lead" <<<"$out" || fail "missing rank: the message does not name lead: $out"
+
+new_fixture
+units_file "$fx/units.md" '`Read`' '`Bash`' '`Edit`' '`*`'
+sed -i 's/^| lead |/| sergeant |/' "$fx/units.md"
+expect_fail "an unknown rank row" "AGP014" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" '`Read`' '`Bash`' '`Edit`' '`*`'
+sed -i 's/^| scout |\(.*\)$/| scout |\1\n| scout | `Write` |/' "$fx/units.md"
+expect_fail "a rank listed twice" "AGP014" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" '`Read`' '`Bash`' '`Edit`' '`*`'
+awk '/^\| scout \|/ { s = $0; next } /^\| specialist \|/ { print; print s; next } { print }' "$fx/units.md" >"$fx/units.new"
+mv "$fx/units.new" "$fx/units.md"
+expect_fail "ranks out of order (the order is how a rank inherits)" "AGP014" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" '' '`Bash`' '`Edit`' '`*`'
+expect_fail "a rank with no tools" "AGP014" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" 'Read, Grep' '`Bash`' '`Edit`' '`*`'
+expect_fail "tool names without backticks" "AGP014" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" '`Read` mostly' '`Bash`' '`Edit`' '`*`'
+expect_fail "text outside the backticks" "AGP014" --units "$fx/units.md"
+
+new_fixture
+units_file "$fx/units.md" '`Read Grep`' '`Bash`' '`Edit`' '`*`'
+expect_fail "a tool name with a space" "AGP014" --units "$fx/units.md"
+
+new_fixture
+with_allow scout "[Read, Edit]"
+units_file "$fx/units.md" '`Read`' '`Bash`' '`Edit`' '`*`'
+sed -i '/^| lead |/d' "$fx/units.md"
+expect_fail "an unreadable table is reported, profiles are not guessed against it" "AGP014" --units "$fx/units.md"
+grep -qF "AGP013" <<<"$out" && fail "an unreadable table must not produce AGP013 findings: $out"
+
+new_fixture
+units_file "$fx/units.md" '`Read`' '`Bash`' '`Edit`' '`*`'
+sed -i 's/^## Next section$/## Rank ceiling (draft)/' "$fx/units.md"
+expect_pass "only the exact '## Rank ceiling' heading counts, later headings end the table" --units "$fx/units.md"
 
 # --- check.sh runs it --------------------------------------------------------------------
 
