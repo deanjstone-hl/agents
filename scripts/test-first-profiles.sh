@@ -75,6 +75,16 @@ expect_body() {
   grep -qF -- "$2" "profiles/$1.md" || fail "$1: body does not say '$2'"
 }
 
+expect_in() {
+  cases=$((cases + 1))
+  grep -qF -- "$2" "$1" || fail "$1 does not say '$2'"
+}
+
+expect_not_in() {
+  cases=$((cases + 1))
+  if grep -qF -- "$2" "$1"; then fail "$1 says '$2'"; fi
+}
+
 expect_file() {
   cases=$((cases + 1))
   [ -s "$1" ] || fail "missing or empty $1"
@@ -149,6 +159,16 @@ expect_body "$worker" 'Refs #'
 expect_body "$worker" 'slot_await_ci'
 expect_body "$worker" 'git push origin HEAD:main'
 expect_body "$worker" '## Resolution evidence'
+
+# --- a red trunk landing reverts first, never fixes forward (argus-config#1581) -----------
+# Step 9 splits by flow: trunk reverts the whole landed range first, a PR is fixed in the PR.
+# The generated charter and brief carry the same wording, so a stale render fails here too.
+for file in "profiles/$worker.md" "generated/briefs/$worker.md" "generated/agents/$worker.md"; do
+  expect_in "$file" '**Trunk:** revert the whole landed range first'
+  expect_in "$file" 'never fix forward on a red `main`'
+  expect_in "$file" '**PR flow:** fix it in the PR'
+  expect_not_in "$file" 'fix it in this thread, or in a trunk repo'
+done
 
 if [ "$failed" -ne 0 ]; then
   echo "test-first-profiles: $failed of $cases checks failed" >&2
