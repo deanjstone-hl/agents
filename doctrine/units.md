@@ -10,7 +10,8 @@ No per-repo tier. Three levels and a small unit at the bottom:
 
 ```
 Owner (commander)
-  Aquila (XO)                       profile: staff-xo
+  Aquila (XO)                       profile: staff-xo     the owner's pathway
+    Tick                            profile: staff-tick   the operating thread
     S-1   backlog admin
     S-2   research and intelligence
     S-3   operations, plans folded in
@@ -22,7 +23,8 @@ Owner (commander)
 | Echelon | Doctrine meaning | Here | Today |
 | ------- | ---------------- | ---- | ----- |
 | Owner (commander) | Commands, sets intent, owns the decision | The human owner. The only customer, and the only release authority: Approve on the hub promotes `deploy` | Approve on the ops-hub card |
-| XO | The commander's principal assistant and key staff integrator, who frees the commander from routine staff detail | Aquila names the orchestrator only; profile `staff-xo`. Other sessions are not Aquila | The direction and AFK orchestrator thread |
+| XO | The commander's principal assistant and key staff integrator, who frees the commander from routine staff detail | Aquila names the owner-facing thread only; profile `staff-xo`. Other sessions are not Aquila, the tick included | The threads in the Aquila project (`~/aquila`): the status card, the decision queue, relays, owner-approved live steps and `owner_turn` |
+| Tick | The XO's operating arm: it carries out the staff work the XO presents to the commander. Our own addition, with no doctrinal echelon | The thread that holds both loop-state leases, fills and verifies the worker slots and reports to Aquila; profile `staff-tick` | The `Aquila Tick` project, nested at `~/aquila/tick` |
 | S-1 | Personnel, headquarters management | Backlog upkeep: labels, waves, filing hygiene. A stretch of the doctrine, kept small | Hygiene work |
 | S-2 | Intelligence for current operations and plans | Research: read sources, report cited findings | The research child |
 | S-3 | Training, operations, plans and force development, integrating the operation as a whole | Running the work: slot workers. Plans (doctrinally G-5, which sits under the G-3 at our scale) is folded in here, so wayfinder maps and grilling belong to this lane | Slot workers, wayfinder |
@@ -45,9 +47,11 @@ The tiers, lowest to highest: **scout → specialist → lead → staff**.
 | scout | Read-only. Reports in its final message. No loop-state tools | Research child, hygiene child |
 | specialist | Writes in its own worktree and pushes or merges its own change. No live changes | Slot worker, reviewer |
 | lead | A specialist that may also launch children and steer workers | None today. Reserved |
-| staff | Runs a lane with loop-state tools and a lease | Aquila (`direction` and `afk`) |
+| staff | Runs a lane with loop-state tools | Aquila (`staff-xo`, which writes only `owner_turn`) and the tick (`staff-tick`, which holds the `direction` and `afk` leases) |
 
 A rank names an envelope. The profile states what it may do; the rank is the label people read, and the [rank ceiling](#rank-ceiling) below caps the tools a profile of that rank may list. A change to a profile's `rank`, `lane`, `tools` or `model` is an authority change and needs the owner's approval.
+
+More than one profile may hold the `staff` rank. `staff-xo` and `staff-tick` both do, because both need loop-state tools (`*` in the ceiling), and the profile, not the rank, says what each may call: Aquila reads loop-state and writes `owner_turn`, and the tick holds the leases. Allowing a second `staff` profile is an authority change ([agents/26](https://github.com/deanjstone-hl/agents/issues/26)), and the owner's approval of it is recorded on that issue's `needs:owner` item.
 
 ## Rank ceiling
 
@@ -79,7 +83,7 @@ Section first, with no unit prefix: `S<section>-<n>`.
 | `S1-1` | The first hygiene child (S-1) |
 | `S3-4` | Slot 4 (S-3) |
 
-- Aquila is the XO and is addressed by name, not by a section call sign.
+- Aquila is the XO and is addressed by name, not by a section call sign. The tick is addressed as the tick.
 - Add a unit prefix only when a second host gets its own unit.
 - **Call signs carry no authority.** They exist for people scanning threads, the ledger and logs. A rank grants an envelope; a call sign grants nothing.
 - The scheme is ours. No call-sign doctrine could be read, so it does not claim to follow military convention.
