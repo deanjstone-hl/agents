@@ -11,7 +11,7 @@
 # profiles (scripts/test-first-profiles.sh), checks units/*.yaml against schema/unit.schema.json
 # and the profiles they name (scripts/check-units.sh), and runs the tests of the fire team: that
 # check, the size trigger and the reviewer profile (scripts/test-fire-team.sh), and the tests that
-# pin the staff-xo profile and the shared working rules of doctrine/culture.md (scripts/test-staff-xo.sh).
+# pin the staff-xo and staff-tick profiles and the shared working rules of doctrine/culture.md (scripts/test-staff-xo.sh).
 # Last, it runs the tests of the Learned-line proposal flow (scripts/test-learned.sh) and checks the shape of a
 # proposal branch (scripts/check-learned.sh: one line, one profile, nothing else; a no-op outside learned/*).
 # Last of all, it runs the tests of the weekly Architecture scout (scripts/test-arch-scout.sh): its profile, the run
