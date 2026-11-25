@@ -34,6 +34,6 @@ Rules every role keeps, whatever its rank. A profile may add to them and never r
 
 Kept out of the culture because it would widen a read-only role's envelope or applies to one role:
 
-- **File suspected bugs** stays in [`staff-xo`](../profiles/staff-xo.md). A scout has no write tool, and a worker files nothing unasked.
+- **File suspected bugs** stays in [`staff-xo`](../profiles/staff-xo.md) and [`staff-tick`](../profiles/staff-tick.md). A scout has no write tool, and a worker files nothing unasked.
 - **Host-load discipline** (one heavy command at a time, the memory gate, one watch per wait) stays in each profile that writes, until a second profile needs it ([agents/6](https://github.com/deanjstone/agents/issues/6#issuecomment-7037964961), question 2).
 - **Repo-engineering rules** (the release pattern, capture-file names) are not role text and stay in argus-config.
